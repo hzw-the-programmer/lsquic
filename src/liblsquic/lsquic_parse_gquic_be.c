@@ -45,10 +45,20 @@
 uint64_t
 lsquic_gquic_be_read_float_time16 (const void *mem)
 {
+#if 1 // hezhiwen
+    uint16_t val;
+    uint64_t temp;
+    uint16_t exp;
+
+    READ_UINT(val, 16, mem, 2);
+    temp = val;
+    exp = (temp >> 11) & 0x1F;
+#else
     uint16_t val;
     READ_UINT(val, 16, mem, 2);
     uint64_t temp = val;
     uint16_t exp = (temp >> 11) & 0x1F;
+#endif
     if (0 == exp)
         return temp;
     else
@@ -298,14 +308,25 @@ lsquic_gquic_be_dec_stream_frame_size (unsigned char *buf, size_t new_size)
 {
     /* 1fdoooss */
     const unsigned char type = buf[0];
+#if 1 // hezhiwen
+    unsigned offset_len;
+    unsigned stream_id_len;
+    uint16_t len;
+#endif
 
     if (!(type & 0x20))
         return 1;
 
+#if 1 // hezhiwen
+    offset_len = ((type >> 2) & 7) + 1 - !((type >> 2) & 7);
+    stream_id_len = 1 + (type & 3);
+    len = new_size;
+#else
     const unsigned offset_len = ((type >> 2) & 7) + 1 - !((type >> 2) & 7);
     const unsigned stream_id_len = 1 + (type & 3);
 
     uint16_t len = new_size;
+#endif
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     len = bswap_16(len);
 #endif
@@ -323,14 +344,29 @@ lsquic_gquic_be_parse_stream_frame (const unsigned char *buf, size_t rem_packet_
     uint32_t stream_id;
     const unsigned char *p = buf;
     const unsigned char *const pend = p + rem_packet_sz;
+#if 1 // hezhiwen
+    char type;
+    unsigned data_len;
+    unsigned offset_len;
+    unsigned stream_id_len;
+    unsigned need;
+#endif
 
     CHECK_SPACE(1, p, pend);
+#if 1 // hezhiwen
+    type = *p++;
+    data_len   = (type >> 4) & 2;
+    offset_len = ((type >> 2) & 7) + 1 - !((type >> 2) & 7);
+    stream_id_len = 1 + (type & 3);
+    need = data_len + offset_len + stream_id_len;
+#else
     const char type = *p++;
 
     const unsigned data_len   = (type >> 4) & 2;
     const unsigned offset_len = ((type >> 2) & 7) + 1 - !((type >> 2) & 7);
     const unsigned stream_id_len = 1 + (type & 3);
     const unsigned need = data_len + offset_len + stream_id_len;
+#endif
     CHECK_SPACE(need, p, pend);
 
     memset(stream_frame, 0, sizeof(*stream_frame));
@@ -441,11 +477,22 @@ parse_ack_frame_with_blocks (const unsigned char *buf, size_t buf_len,
     const unsigned char *p = buf + 1;
     const unsigned char *const pend = buf + buf_len;
     unsigned char n_timestamps;
+#if 1 // hezhiwen
+    int ack_block_len;
+    int largest_obs_len;
+    unsigned n_blocks;
+    unsigned i, n, gap;
+#endif
 
     assert((type & 0xC0) == 0x40);      /* We're passed correct frame type */
 
+#if 1 // hezhiwen
+    ack_block_len   = twobit_to_1246(type & 3);        /* mm */
+    largest_obs_len = twobit_to_1246((type >> 2) & 3); /* ll */
+#else
     const int ack_block_len   = twobit_to_1246(type & 3);        /* mm */
     const int largest_obs_len = twobit_to_1246((type >> 2) & 3); /* ll */
+#endif
 
     CHECK_SPACE(largest_obs_len + 2 + 1 + ack_block_len, p, pend);
 
@@ -455,7 +502,9 @@ parse_ack_frame_with_blocks (const unsigned char *buf, size_t buf_len,
     ack->lack_delta = lsquic_gquic_be_read_float_time16(p);
     p += 2;
 
+#if 0 // hezhiwen
     unsigned n_blocks;
+#endif
     CHECK_SPACE(1, p , pend);
     n_blocks = *p;
     ++p;
@@ -466,7 +515,9 @@ parse_ack_frame_with_blocks (const unsigned char *buf, size_t buf_len,
 
     CHECK_SPACE((ack_block_len + 1) * n_blocks + /* timestamp count: */ 1,
                 p , pend);
+#if 0 // hezhiwen
     unsigned i, n, gap;
+#endif
     for (i = 0, n = 1, gap = 0; i < n_blocks; ++i)
     {
         uint64_t length;
@@ -722,6 +773,9 @@ lsquic_gquic_be_gen_connect_close_frame (unsigned char *buf, size_t buf_len,
 {
     uint32_t error_code;
     unsigned char *p = buf;
+#if 1 // hezhiwen
+    uint16_t copy;
+#endif
     if ((int) buf_len < 7 + reason_len)
         return -1;
 
@@ -734,7 +788,11 @@ lsquic_gquic_be_gen_connect_close_frame (unsigned char *buf, size_t buf_len,
     memcpy(p, &error_code, 4);
     p += 4;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
+#if 1 // hezhiwen
+    copy = bswap_16(reason_len);
+#else
     const uint16_t copy = bswap_16(reason_len);
+#endif
     memcpy(p, &copy, 2);
 #else
     memcpy(p, &reason_len, 2);
@@ -778,6 +836,9 @@ lsquic_gquic_be_gen_goaway_frame (unsigned char *buf, size_t buf_len,
 {
     uint32_t last_good_stream_id = last_good_stream_id64;
     unsigned char *p = buf;
+#if 1 // hezhiwen
+    uint16_t copy;
+#endif
     if (buf_len < GQUIC_GOAWAY_FRAME_SZ + reason_len)
         return -1;
 
@@ -794,7 +855,11 @@ lsquic_gquic_be_gen_goaway_frame (unsigned char *buf, size_t buf_len,
     memcpy(p, &last_good_stream_id, 4);
     p += 4;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
+#if 1 // hezhiwen
+    copy = bswap_16(reason_len);
+#else
     uint16_t copy = bswap_16(reason_len);
+#endif
     memcpy(p, &copy, 2);
 #else
     memcpy(p, &reason_len, 2);
@@ -849,6 +914,17 @@ lsquic_gquic_be_gen_ack_frame (unsigned char *outbuf, size_t outbuf_sz,
     lsquic_time_t time_diff;
     lsquic_packno_t tmp_packno;
     const struct lsquic_packno_range *const first = rechist_first(rechist);
+#if 1 // hezhiwen
+    lsquic_packno_t first_low, first_high;
+    unsigned char *p;
+    unsigned char *type;
+    unsigned char *end;
+    unsigned largest_acked_len, ack_block_len, bits;
+    lsquic_packno_t maxno;
+    unsigned n_ranges = 0;
+    lsquic_packno_t maxdiff = 0;
+    const struct lsquic_packno_range *range;
+#endif
     if (!first)
     {
         errno = EINVAL;
@@ -858,11 +934,18 @@ lsquic_gquic_be_gen_ack_frame (unsigned char *outbuf, size_t outbuf_sz,
     /* Copy values from the first range, because the memory the pointer
      * points to may change:
      */
+#if 1 // hezhiwen
+    first_low = first->low, first_high = first->high;
+    p = outbuf;
+    type = p;
+    end = p + outbuf_sz;
+#else
     const lsquic_packno_t first_low = first->low, first_high = first->high;
 
     unsigned char *p = outbuf;
     unsigned char *const type = p;
     unsigned char *const end = p + outbuf_sz;
+#endif
 
 #define AVAIL() (end - p)
 
@@ -879,10 +962,16 @@ lsquic_gquic_be_gen_ack_frame (unsigned char *outbuf, size_t outbuf_sz,
     /* 01nullmm */
     *type = 0x40;
 
+#if 0 // hezhiwen
     unsigned largest_acked_len, ack_block_len, bits;
+#endif
 
     /* Calculate largest ACKed len and set `ll' bits: */
+#if 1 // hezhiwen
+    maxno = first_high;
+#else
     const lsquic_packno_t maxno = first_high;
+#endif
     bits = (maxno >= (1ULL <<  8))
          + (maxno >= (1ULL << 16))
          + (maxno >= (1ULL << 32));
@@ -890,13 +979,21 @@ lsquic_gquic_be_gen_ack_frame (unsigned char *outbuf, size_t outbuf_sz,
     *type |= bits << 2;
 
     /* Calculate largest ACK block length and set `mm' bits: */
+#if 0 // hezhiwen
     unsigned n_ranges = 0;
     lsquic_packno_t maxdiff = 0;
     const struct lsquic_packno_range *range;
+#endif
     for (range = rechist_first(rechist); range; range = rechist_next(rechist))
     {
+    #if 1 // hezhiwen
+        lsquic_packno_t diff;
+        ++n_ranges;
+        diff = range->high - range->low + 1;
+    #else
         ++n_ranges;
         const lsquic_packno_t diff = range->high - range->low + 1;
+    #endif
         if (diff > maxdiff)
             maxdiff = diff;
     }
@@ -925,12 +1022,22 @@ lsquic_gquic_be_gen_ack_frame (unsigned char *outbuf, size_t outbuf_sz,
 
     if (n_ranges > 1)
     {
+    #if 1 // hezhiwen
+        unsigned char *n_ranges_p;
+        lsquic_packno_t diff;
+        lsquic_packno_t gap = 0;
+    #endif
         *has_missing = 1;
         *type |= 0x20;
         /* We need to write out at least one range */
         CHECKOUT(2 * (1 + ack_block_len));
+    #if 1 // hezhiwen
+        n_ranges_p = p;
+        diff = maxno - first_low + 1;
+    #else
         unsigned char *const n_ranges_p = p;             /* Set this later */
         lsquic_packno_t diff = maxno - first_low + 1;
+    #endif
 #if __BYTE_ORDER == __LITTLE_ENDIAN
         diff = bswap_64(diff);
 #endif
@@ -943,7 +1050,9 @@ lsquic_gquic_be_gen_ack_frame (unsigned char *outbuf, size_t outbuf_sz,
          *  3. We run out of highest possible number of ACK blocks (0xFF).
          */
         range = rechist_first(rechist);
+    #if 0 // hezhiwen
         lsquic_packno_t gap = 0;
+    #endif
         n_ranges = 0;
         do {
             if (0 == gap)
@@ -979,9 +1088,16 @@ lsquic_gquic_be_gen_ack_frame (unsigned char *outbuf, size_t outbuf_sz,
     }
     else
     {
+    #if 1 // hezhiwen
+        lsquic_packno_t diff;
+        *has_missing = 0;
+        CHECKOUT(ack_block_len);
+        diff = maxno - first_low + 1;
+    #else
         *has_missing = 0;
         CHECKOUT(ack_block_len);
         lsquic_packno_t diff = maxno - first_low + 1;
+    #endif
 #if __BYTE_ORDER == __LITTLE_ENDIAN
         diff = bswap_64(diff);
 #endif
@@ -1046,6 +1162,91 @@ gquic_Q043_parse_handshake_done_frame (const unsigned char *buf, size_t buf_len)
 
 const struct parse_funcs lsquic_parse_funcs_gquic_Q043 =
 {
+#if 1 // hezhiwen
+    lsquic_gquic_be_gen_reg_pkt_header, // pf_gen_reg_pkt_header
+    lsquic_gquic_be_parse_packet_in_finish, // pf_parse_packet_in_finish
+    lsquic_parse_frame_type_gquic_Q035_thru_Q046, // pf_parse_frame_type
+    lsquic_gquic_be_gen_stream_frame, // pf_gen_stream_frame
+    lsquic_gquic_be_gen_crypto_frame, // pf_gen_crypto_frame
+    lsquic_gquic_be_parse_stream_frame, // pf_parse_stream_frame
+    lsquic_gquic_be_parse_crypto_frame, // pf_parse_crypto_frame
+    lsquic_gquic_be_dec_stream_frame_size, // pf_dec_stream_frame_size
+    lsquic_gquic_be_parse_ack_frame, // pf_parse_ack_frame
+    lsquic_gquic_be_gen_ack_frame, // pf_gen_ack_frame
+    lsquic_gquic_be_gen_stop_waiting_frame, // pf_gen_stop_waiting_frame
+    lsquic_gquic_be_parse_stop_waiting_frame, // pf_parse_stop_waiting_frame
+    lsquic_gquic_be_skip_stop_waiting_frame, // pf_skip_stop_waiting_frame
+    lsquic_gquic_be_gen_window_update_frame, // pf_gen_window_update_frame
+    lsquic_gquic_be_parse_window_update_frame, // pf_parse_window_update_frame
+    lsquic_gquic_be_gen_blocked_frame, // pf_gen_blocked_frame
+    lsquic_gquic_be_parse_blocked_frame, // pf_parse_blocked_frame
+    NULL, // pf_blocked_frame_size
+    lsquic_gquic_be_rst_frame_size, // pf_rst_frame_size
+    lsquic_gquic_be_gen_rst_frame, // pf_gen_rst_frame
+    lsquic_gquic_be_parse_rst_frame, // pf_parse_rst_frame
+    NULL, // pf_parse_stop_sending_frame
+    NULL, // pf_stop_sending_frame_size
+    NULL, // pf_gen_stop_sending_frame
+    lsquic_gquic_be_connect_close_frame_size, // pf_connect_close_frame_size
+    lsquic_gquic_be_gen_connect_close_frame, // pf_gen_connect_close_frame
+    lsquic_gquic_be_parse_connect_close_frame, // pf_parse_connect_close_frame
+    lsquic_gquic_be_gen_goaway_frame, // pf_gen_goaway_frame
+    lsquic_gquic_be_parse_goaway_frame, // pf_parse_goaway_frame
+    lsquic_gquic_be_gen_ping_frame, // pf_gen_ping_frame
+    NULL, // pf_parse_path_chal_frame
+    NULL, // pf_parse_path_resp_frame
+#if 1 // ndef NDEBUG
+    lsquic_gquic_be_write_float_time16, // pf_write_float_time16
+    lsquic_gquic_be_read_float_time16, // pf_read_float_time16
+#endif
+    lsquic_generate_gquic_reset, // pf_generate_simple_prst
+    lsquic_calc_stream_frame_header_sz_gquic, // pf_calc_stream_frame_header_sz
+    NULL, // pf_calc_crypto_frame_header_sz
+    lsquic_turn_on_fin_Q035_thru_Q046, // pf_turn_on_fin
+    lsquic_gquic_packout_size, // pf_packout_size
+    lsquic_gquic_packout_header_size, // pf_packout_max_header_size
+    lsquic_gquic_calc_packno_bits, // pf_calc_packno_bits
+    lsquic_gquic_packno_bits2len, // pf_packno_bits2len
+    NULL, // pf_parse_max_data
+    NULL, // pf_gen_max_data_frame
+    NULL, // pf_max_data_frame_size
+    NULL, // pf_parse_new_conn_id
+    NULL, // pf_stream_blocked_frame_size
+    NULL, // pf_gen_stream_blocked_frame
+    NULL, // pf_parse_stream_blocked_frame
+    NULL, // pf_max_stream_data_frame_size
+    NULL, // pf_gen_max_stream_data_frame
+    NULL, // pf_parse_max_stream_data_frame
+    NULL, // pf_parse_new_token_frame
+    NULL, // pf_new_connection_id_frame_size
+    NULL, // pf_gen_new_connection_id_frame
+    NULL, // pf_retire_cid_frame_size
+    NULL, // pf_gen_retire_cid_frame
+    NULL, // pf_parse_retire_cid_frame
+    NULL, // pf_new_token_frame_size
+    NULL, // pf_gen_new_token_frame
+    NULL, // pf_gen_streams_blocked_frame
+    NULL, // pf_parse_streams_blocked_frame
+    NULL, // pf_streams_blocked_frame_size
+    NULL, // pf_gen_max_streams_frame
+    NULL, // pf_parse_max_streams_frame
+    NULL, // pf_max_streams_frame_size
+    NULL, // pf_path_chal_frame_size
+    NULL, // pf_gen_path_chal_frame
+    NULL, // pf_path_resp_frame_size
+    NULL, // pf_gen_path_resp_frame
+    gquic_Q043_gen_handshake_done_frame, // pf_gen_handshake_done_frame
+    gquic_Q043_parse_handshake_done_frame, // pf_parse_handshake_done_frame
+    gquic_Q043_handshake_done_frame_size, // pf_handshake_done_frame_size
+    NULL, // pf_gen_ack_frequency_frame
+    NULL, // pf_parse_ack_frequency_frame
+    NULL, // pf_ack_frequency_frame_size
+    NULL, // pf_gen_timestamp_frame
+    NULL, // pf_parse_timestamp_frame
+    NULL, // pf_parse_datagram_frame
+    NULL, // pf_gen_datagram_frame
+    NULL, // pf_datagram_frame_size
+#else
     .pf_gen_reg_pkt_header            =  lsquic_gquic_be_gen_reg_pkt_header,
     .pf_parse_packet_in_finish        =  lsquic_gquic_be_parse_packet_in_finish,
     .pf_gen_stream_frame              =  lsquic_gquic_be_gen_stream_frame,
@@ -1086,4 +1287,5 @@ const struct parse_funcs lsquic_parse_funcs_gquic_Q043 =
     .pf_gen_handshake_done_frame      =  gquic_Q043_gen_handshake_done_frame,
     .pf_parse_handshake_done_frame    =  gquic_Q043_parse_handshake_done_frame,
     .pf_handshake_done_frame_size     =  gquic_Q043_handshake_done_frame_size,
+#endif
 };

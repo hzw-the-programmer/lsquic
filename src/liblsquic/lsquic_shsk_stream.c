@@ -95,8 +95,25 @@ hsk_server_on_close (lsquic_stream_t *stream, struct lsquic_stream_ctx *ctx)
 
 const struct lsquic_stream_if lsquic_server_hsk_stream_if =
 {
+#if 1 // hezhiwen
+    NULL, // on_new_conn
+    NULL, // on_goaway_received
+    NULL, // on_conn_closed
+    hsk_server_on_new_stream, // on_new_stream
+    hsk_server_on_read, // on_read
+    hsk_server_on_write, // on_write
+    hsk_server_on_close, // on_close
+    NULL, // on_dg_write
+    NULL, // on_datagram
+    NULL, // on_hsk_done
+    NULL, // on_new_token
+    NULL, // on_sess_resume_info
+    NULL, // on_reset
+    NULL, // on_conncloseframe_received
+#else
     .on_new_stream = hsk_server_on_new_stream,
     .on_read       = hsk_server_on_read,
     .on_write      = hsk_server_on_write,
     .on_close      = hsk_server_on_close,
+#endif
 };

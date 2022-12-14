@@ -1473,12 +1473,20 @@ full_conn_ci_record_addrs (struct lsquic_conn *lconn, void *peer_ctx,
             const struct sockaddr *local_sa, const struct sockaddr *peer_sa)
 {
     struct full_conn *conn = (struct full_conn *) lconn;
+#if 1 // hezhiwen
+    size_t len;
+#endif
 
     if (NP_IS_IPv6(&conn->fc_path) != (AF_INET6 == peer_sa->sa_family))
         lsquic_send_ctl_return_enc_data(&conn->fc_send_ctl);
 
+#if 1 // hezhiwen
+    len = peer_sa->sa_family == AF_INET ? sizeof(struct sockaddr_in)
+                                                : sizeof(struct sockaddr_in6);
+#else
     size_t len = peer_sa->sa_family == AF_INET ? sizeof(struct sockaddr_in)
                                                 : sizeof(struct sockaddr_in6);
+#endif
 
     memcpy(conn->fc_path.np_peer_addr, peer_sa, len);
 
@@ -2216,6 +2224,35 @@ typedef unsigned (*process_frame_f)(
 
 static process_frame_f const process_frames[N_QUIC_FRAMES] =
 {
+#if 1 // hezhiwen
+    process_invalid_frame, // QUIC_FRAME_INVALID
+    process_stream_frame, // QUIC_FRAME_STREAM
+    process_ack_frame, // QUIC_FRAME_ACK
+    process_padding_frame, // QUIC_FRAME_PADDING
+    process_rst_stream_frame, // QUIC_FRAME_RST_STREAM
+    process_connection_close_frame, // QUIC_FRAME_CONNECTION_CLOSE
+    process_goaway_frame, // QUIC_FRAME_GOAWAY
+    process_window_update_frame, // QUIC_FRAME_WINDOW_UPDATE
+    process_blocked_frame, // QUIC_FRAME_BLOCKED
+    process_stop_waiting_frame, // QUIC_FRAME_STOP_WAITING
+    process_ping_frame, // QUIC_FRAME_PING
+    NULL, // QUIC_FRAME_MAX_DATA
+    NULL, // QUIC_FRAME_MAX_STREAM_DATA
+    NULL, // QUIC_FRAME_MAX_STREAMS
+    NULL, // QUIC_FRAME_STREAM_BLOCKED
+    NULL, // QUIC_FRAME_STREAMS_BLOCKED
+    NULL, // QUIC_FRAME_NEW_CONNECTION_ID
+    NULL, // QUIC_FRAME_STOP_SENDING
+    NULL, // QUIC_FRAME_PATH_CHALLENGE
+    NULL, // QUIC_FRAME_PATH_RESPONSE
+    process_crypto_frame, // QUIC_FRAME_CRYPTO
+    NULL, // QUIC_FRAME_RETIRE_CONNECTION_ID
+    NULL, // QUIC_FRAME_NEW_TOKEN
+    NULL, // QUIC_FRAME_HANDSHAKE_DONE
+    NULL, // QUIC_FRAME_ACK_FREQUENCY
+    NULL, // QUIC_FRAME_TIMESTAMP
+    NULL, // QUIC_FRAME_DATAGRAM
+#else
     [QUIC_FRAME_ACK]                  =  process_ack_frame,
     [QUIC_FRAME_BLOCKED]              =  process_blocked_frame,
     [QUIC_FRAME_CONNECTION_CLOSE]     =  process_connection_close_frame,
@@ -2228,6 +2265,7 @@ static process_frame_f const process_frames[N_QUIC_FRAMES] =
     [QUIC_FRAME_STOP_WAITING]         =  process_stop_waiting_frame,
     [QUIC_FRAME_STREAM]               =  process_stream_frame,
     [QUIC_FRAME_WINDOW_UPDATE]        =  process_window_update_frame,
+#endif
 };
 
 static unsigned
@@ -2572,13 +2610,24 @@ get_writeable_packet (struct full_conn *conn, unsigned need_at_least)
 static int
 generate_wuf_stream (struct full_conn *conn, lsquic_stream_t *stream)
 {
+#if 1 // hezhiwen
+    uint64_t recv_off;
+    int sz;
+#endif
     lsquic_packet_out_t *packet_out = get_writeable_packet(conn, GQUIC_WUF_SZ);
     if (!packet_out)
         return 0;
+#if 1 // hezhiwen
+    recv_off = lsquic_stream_fc_recv_off(stream);
+    sz = conn->fc_conn.cn_pf->pf_gen_window_update_frame(
+                packet_out->po_data + packet_out->po_data_sz,
+                     lsquic_packet_out_avail(packet_out), stream->id, recv_off);
+#else
     const uint64_t recv_off = lsquic_stream_fc_recv_off(stream);
     int sz = conn->fc_conn.cn_pf->pf_gen_window_update_frame(
                 packet_out->po_data + packet_out->po_data_sz,
                      lsquic_packet_out_avail(packet_out), stream->id, recv_off);
+#endif
     if (sz < 0) {
         ABORT_ERROR("gen_window_update_frame failed");
         return 0;
@@ -2596,14 +2645,27 @@ generate_wuf_stream (struct full_conn *conn, lsquic_stream_t *stream)
 static void
 generate_wuf_conn (struct full_conn *conn)
 {
+#if 1 // hezhiwen
+    uint64_t recv_off;
+    int sz;
+#else
     assert(conn->fc_flags & FC_SEND_WUF);
+#endif
     lsquic_packet_out_t *packet_out = get_writeable_packet(conn, GQUIC_WUF_SZ);
     if (!packet_out)
         return;
+#if 1 // hezhiwen
+    assert(conn->fc_flags & FC_SEND_WUF);
+    recv_off = lsquic_cfcw_get_fc_recv_off(&conn->fc_pub.cfcw);
+    conn->fc_conn.cn_pf->pf_gen_window_update_frame(
+                     packet_out->po_data + packet_out->po_data_sz,
+                     lsquic_packet_out_avail(packet_out), 0, recv_off);
+#else
     const uint64_t recv_off = lsquic_cfcw_get_fc_recv_off(&conn->fc_pub.cfcw);
     int sz = conn->fc_conn.cn_pf->pf_gen_window_update_frame(
                      packet_out->po_data + packet_out->po_data_sz,
                      lsquic_packet_out_avail(packet_out), 0, recv_off);
+#endif
     if (sz < 0) {
         ABORT_ERROR("gen_window_update_frame failed");
         return;
@@ -2647,15 +2709,25 @@ maybe_close_conn (struct full_conn *conn)
 static void
 generate_goaway_frame (struct full_conn *conn)
 {
+#if 1 // hezhiwen
+    int sz;
+#endif
     int reason_len = 0;
     lsquic_packet_out_t *packet_out =
         get_writeable_packet(conn, GQUIC_GOAWAY_FRAME_SZ + reason_len);
     if (!packet_out)
         return;
+#if 1 // hezhiwen
+    sz = conn->fc_conn.cn_pf->pf_gen_goaway_frame(
+                 packet_out->po_data + packet_out->po_data_sz,
+                 lsquic_packet_out_avail(packet_out), 0, conn->fc_max_peer_stream_id,
+                 NULL, reason_len);
+#else
     int sz = conn->fc_conn.cn_pf->pf_gen_goaway_frame(
                  packet_out->po_data + packet_out->po_data_sz,
                  lsquic_packet_out_avail(packet_out), 0, conn->fc_max_peer_stream_id,
                  NULL, reason_len);
+#endif
     if (sz < 0) {
         ABORT_ERROR("gen_goaway_frame failed");
         return;
@@ -2674,6 +2746,9 @@ static void
 generate_connection_close_packet (struct full_conn *conn)
 {
     lsquic_packet_out_t *packet_out;
+#if 1 // hezhiwen
+    int sz;
+#endif
 
     packet_out = lsquic_send_ctl_new_packet_out(&conn->fc_send_ctl, 0, PNS_APP,
                                                                 &conn->fc_path);
@@ -2684,9 +2759,15 @@ generate_connection_close_packet (struct full_conn *conn)
     }
 
     lsquic_send_ctl_scheduled_one(&conn->fc_send_ctl, packet_out);
+#if 1 // hezhiwen
+    sz = conn->fc_conn.cn_pf->pf_gen_connect_close_frame(packet_out->po_data + packet_out->po_data_sz,
+                     lsquic_packet_out_avail(packet_out), 0, 16 /* PEER_GOING_AWAY */,
+                     NULL, 0);
+#else
     int sz = conn->fc_conn.cn_pf->pf_gen_connect_close_frame(packet_out->po_data + packet_out->po_data_sz,
                      lsquic_packet_out_avail(packet_out), 0, 16 /* PEER_GOING_AWAY */,
                      NULL, 0);
+#endif
     if (sz < 0) {
         ABORT_ERROR("generate_connection_close_packet failed");
         return;
@@ -2700,13 +2781,22 @@ generate_connection_close_packet (struct full_conn *conn)
 static int
 generate_blocked_frame (struct full_conn *conn, lsquic_stream_id_t stream_id)
 {
+#if 1 // hezhiwen
+    int sz;
+#endif
     lsquic_packet_out_t *packet_out =
                             get_writeable_packet(conn, GQUIC_BLOCKED_FRAME_SZ);
     if (!packet_out)
         return 0;
+#if 1 // hezhiwen
+    sz = conn->fc_conn.cn_pf->pf_gen_blocked_frame(
+                                 packet_out->po_data + packet_out->po_data_sz,
+                                 lsquic_packet_out_avail(packet_out), stream_id);
+#else
     int sz = conn->fc_conn.cn_pf->pf_gen_blocked_frame(
                                  packet_out->po_data + packet_out->po_data_sz,
                                  lsquic_packet_out_avail(packet_out), stream_id);
+#endif
     if (sz < 0) {
         ABORT_ERROR("gen_blocked_frame failed");
         return 0;
@@ -2773,15 +2863,24 @@ generate_rst_stream_frame (struct full_conn *conn, lsquic_stream_t *stream)
 static void
 generate_ping_frame (struct full_conn *conn)
 {
+#if 1 // hezhiwen
+    int sz;
+#endif
     lsquic_packet_out_t *packet_out = get_writeable_packet(conn, 1);
     if (!packet_out)
     {
         LSQ_DEBUG("cannot get writeable packet for PING frame");
         return;
     }
+#if 1 // hezhiwen
+    sz = conn->fc_conn.cn_pf->pf_gen_ping_frame(
+                            packet_out->po_data + packet_out->po_data_sz,
+                            lsquic_packet_out_avail(packet_out));
+#else
     int sz = conn->fc_conn.cn_pf->pf_gen_ping_frame(
                             packet_out->po_data + packet_out->po_data_sz,
                             lsquic_packet_out_avail(packet_out));
+#endif
     if (sz < 0) {
         ABORT_ERROR("gen_ping_frame failed");
         return;
@@ -2797,12 +2896,17 @@ generate_ping_frame (struct full_conn *conn)
 static void
 generate_stop_waiting_frame (struct full_conn *conn)
 {
+#if 0 // hezhiwen
     assert(conn->fc_flags & FC_SEND_STOP_WAITING);
+#endif
 
     int sz;
     unsigned packnum_len;
     lsquic_packno_t least_unacked;
     lsquic_packet_out_t *packet_out;
+#if 1 // hezhiwen
+    assert(conn->fc_flags & FC_SEND_STOP_WAITING);
+#endif
 
     /* Get packet that has room for the minimum size STOP_WAITING frame: */
     packnum_len = conn->fc_conn.cn_pf->pf_packno_bits2len(GQUIC_PACKNO_LEN_1);
@@ -4521,17 +4625,81 @@ full_conn_ci_log_stats (struct lsquic_conn *lconn)
 
 static const struct headers_stream_callbacks headers_callbacks =
 {
+#if 1 // hezhiwen
+    headers_stream_on_incoming_headers, // hsc_on_headers
+    headers_stream_on_enable_push, // hsc_on_enable_push
+    headers_stream_on_push_promise, // hsc_on_push_promise
+    headers_stream_on_priority, // hsc_on_priority
+    headers_stream_on_stream_error, // hsc_on_stream_error
+    headers_stream_on_conn_error, // hsc_on_conn_error
+#else
     .hsc_on_headers      = headers_stream_on_incoming_headers,
     .hsc_on_push_promise = headers_stream_on_push_promise,
     .hsc_on_priority     = headers_stream_on_priority,
     .hsc_on_stream_error = headers_stream_on_stream_error,
     .hsc_on_conn_error   = headers_stream_on_conn_error,
     .hsc_on_enable_push  = headers_stream_on_enable_push,
+#endif
 };
 
 static const struct headers_stream_callbacks *headers_callbacks_ptr = &headers_callbacks;
 
 static const struct conn_iface full_conn_iface = {
+#if 1 // hezhiwen
+    full_conn_ci_tick, // ci_tick
+    full_conn_ci_packet_in, // ci_packet_in
+    full_conn_ci_next_packet_to_send, // ci_next_packet_to_send
+    full_conn_ci_packet_sent, // ci_packet_sent
+    full_conn_ci_packet_not_sent, // ci_packet_not_sent
+    NULL, // ci_packet_too_large
+    full_conn_ci_hsk_done, // ci_hsk_done
+    full_conn_ci_destroy, // ci_destroy
+    full_conn_ci_is_tickable, // ci_is_tickable
+    full_conn_ci_next_tick_time, // ci_next_tick_time
+    full_conn_ci_can_write_ack, // ci_can_write_ack
+    full_conn_ci_write_ack, // ci_write_ack
+#if LSQUIC_CONN_STATS
+    full_conn_ci_get_stats, // ci_get_stats
+    full_conn_ci_log_stats, // ci_log_stats
+#endif
+    full_conn_ci_client_call_on_new, // ci_client_call_on_new
+    full_conn_ci_status, // ci_status
+    full_conn_ci_n_avail_streams, // ci_n_avail_streams
+    full_conn_ci_n_pending_streams, // ci_n_pending_streams
+    full_conn_ci_cancel_pending_streams, // ci_cancel_pending_streams
+    full_conn_ci_going_away, // ci_going_away
+    full_conn_ci_is_push_enabled, // ci_is_push_enabled
+    full_conn_ci_get_stream_by_id, // ci_get_stream_by_id
+    full_conn_ci_get_engine, // ci_get_engine
+    full_conn_ci_make_stream, // ci_make_stream
+    full_conn_ci_abort, // ci_abort
+    NULL, // ci_retire_cid
+    full_conn_ci_close, // ci_close
+    NULL, // ci_stateless_reset
+    NULL, // ci_crypto_keysize
+    NULL, // ci_crypto_alg_keysize
+    NULL, // ci_crypto_ver
+    NULL, // ci_crypto_cipher
+    full_conn_ci_push_stream, // ci_push_stream
+    full_conn_ci_internal_error, // ci_internal_error
+    full_conn_ci_abort_error, // ci_abort_error
+    full_conn_ci_tls_alert, // ci_tls_alert
+    NULL, // ci_drain_time
+    NULL, // ci_report_live
+    full_conn_ci_get_path, // ci_get_path
+    full_conn_ci_record_addrs, // ci_record_addrs
+    NULL, // ci_get_log_cid
+    NULL, // ci_drop_crypto_streams
+    NULL, // ci_count_garbage
+    NULL, // ci_mtu_probe_acked
+    NULL, // ci_retx_timeout
+    full_conn_ci_ack_snapshot, // ci_ack_snapshot
+    full_conn_ci_ack_rollback, // ci_ack_rollback
+    NULL, // ci_want_datagram_write
+    NULL, // ci_set_min_datagram_size
+    NULL, // ci_get_min_datagram_size
+    NULL, // ci_early_data_failed
+#else
     .ci_abort                =  full_conn_ci_abort,
     .ci_abort_error          =  full_conn_ci_abort_error,
     .ci_ack_rollback         =  full_conn_ci_ack_rollback,
@@ -4573,6 +4741,7 @@ static const struct conn_iface full_conn_iface = {
     .ci_write_ack            =  full_conn_ci_write_ack,
     .ci_push_stream          =  full_conn_ci_push_stream,
     .ci_tls_alert            =  full_conn_ci_tls_alert,
+#endif
 };
 
 static const struct conn_iface *full_conn_iface_ptr = &full_conn_iface;

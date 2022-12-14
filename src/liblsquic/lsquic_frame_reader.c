@@ -155,6 +155,18 @@ static const char *
 hft_to_string (enum http_frame_type hft)
 {
     static const char *const map[] = {
+    #if 1 // hezhiwen
+        "HTTP_FRAME_DATA",
+        "HTTP_FRAME_HEADERS",
+        "HTTP_FRAME_PRIORITY",
+        "HTTP_FRAME_RST_STREAM",
+        "HTTP_FRAME_SETTINGS",
+        "HTTP_FRAME_PUSH_PROMISE",
+        "HTTP_FRAME_PING",
+        "HTTP_FRAME_GOAWAY",
+        "HTTP_FRAME_WINDOW_UPDATE",
+        "HTTP_FRAME_CONTINUATION",
+    #else
         [HTTP_FRAME_DATA]           =  "HTTP_FRAME_DATA",
         [HTTP_FRAME_HEADERS]        =  "HTTP_FRAME_HEADERS",
         [HTTP_FRAME_PRIORITY]       =  "HTTP_FRAME_PRIORITY",
@@ -165,6 +177,7 @@ hft_to_string (enum http_frame_type hft)
         [HTTP_FRAME_GOAWAY]         =  "HTTP_FRAME_GOAWAY",
         [HTTP_FRAME_WINDOW_UPDATE]  =  "HTTP_FRAME_WINDOW_UPDATE",
         [HTTP_FRAME_CONTINUATION]   =  "HTTP_FRAME_CONTINUATION",
+    #endif
     };
     if (hft < N_HTTP_FRAME_TYPES)
         return map[hft];
@@ -201,11 +214,17 @@ lsquic_frame_reader_new (enum frame_reader_flags flags,
     fr->fr_hsi_if         = hsi_if;
     if (hsi_if == lsquic_http1x_if)
     {
+    #if 1 // hezhiwen
+        fr->fr_h1x_ctor_ctx.conn = lsquic_stream_conn(stream);
+        fr->fr_h1x_ctor_ctx.max_headers_sz = fr->fr_max_headers_sz;
+        fr->fr_h1x_ctor_ctx.is_server = fr->fr_flags & FRF_SERVER;
+    #else
         fr->fr_h1x_ctor_ctx = (struct http1x_ctor_ctx) {
             .conn           = lsquic_stream_conn(stream),
             .max_headers_sz = fr->fr_max_headers_sz,
             .is_server      = fr->fr_flags & FRF_SERVER,
         };
+    #endif
         fr->fr_hsi_ctx = &fr->fr_h1x_ctor_ctx;
     }
     else
@@ -477,9 +496,16 @@ skip_payload (struct lsquic_frame_reader *fr)
     struct skip_state *ss = &fr->fr_state.by_type.skip_state;
     size_t ntoread = fr->fr_state.payload_length - ss->n_skipped;
     unsigned char buf[0x100];
+#if 1 // hezhiwen
+    ssize_t nr;
+#endif
     if (ntoread > sizeof(buf))
         ntoread = sizeof(buf);
+#if 1 // hezhiwen
+    nr = fr->fr_read(fr->fr_stream, buf, ntoread);
+#else
     ssize_t nr = fr->fr_read(fr->fr_stream, buf, ntoread);
+#endif
     if (nr <= 0)
         RETURN_ERROR(nr);
     ss->n_skipped += nr;
@@ -496,10 +522,17 @@ skip_headers_padding (struct lsquic_frame_reader *fr)
     struct headers_state *hs = &fr->fr_state.by_type.headers_state;
     unsigned pay_and_pad_length = fr->fr_state.payload_length - hs->pesw_size;
     unsigned ntoread = pay_and_pad_length - hs->nread;
+#if 1 // hezhiwen
+    ssize_t nr;
+#endif
     assert(ntoread <= sizeof(buf));
     if (ntoread > sizeof(buf))
         ntoread = sizeof(buf);
+#if 1 // hezhiwen
+    nr = fr->fr_read(fr->fr_stream, buf, ntoread);
+#else
     ssize_t nr = fr->fr_read(fr->fr_stream, buf, ntoread);
+#endif
     if (nr <= 0)
         RETURN_ERROR(nr);
     hs->nread += nr;

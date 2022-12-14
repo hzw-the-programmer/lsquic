@@ -147,11 +147,19 @@ lsquic_frame_writer_have_leftovers (const struct lsquic_frame_writer *fw)
 int
 lsquic_frame_writer_flush (struct lsquic_frame_writer *fw)
 {
+#if 1 // hezhiwen
+    struct lsquic_reader reader = {
+        lsquic_frab_list_read,
+        lsquic_frab_list_size,
+        &fw->fw_fral,
+    };
+#else
     struct lsquic_reader reader = {
         .lsqr_read  = lsquic_frab_list_read,
         .lsqr_size  = lsquic_frab_list_size,
         .lsqr_ctx   = &fw->fw_fral,
     };
+#endif
     ssize_t nw;
 
     nw = fw->fw_writef(fw->fw_stream, &reader);
@@ -295,6 +303,14 @@ hfc_write (struct header_framer_ctx *hfc, const void *buf, size_t sz)
 static unsigned
 count_uppercase (const unsigned char *buf, size_t sz)
 {
+#if 1 // hezhiwen
+    unsigned n_uppercase, i;
+    unsigned char uppercase[0x100] = {0};
+    for (i = 'A'; i <= 'Z'; i++)
+    {
+        uppercase[i] = 1;
+    }
+#else
     static const unsigned char uppercase[0x100] = {
         ['A'] = 1, ['B'] = 1, ['C'] = 1, ['D'] = 1, ['E'] = 1, ['F'] = 1,
         ['G'] = 1, ['H'] = 1, ['I'] = 1, ['J'] = 1, ['K'] = 1, ['L'] = 1,
@@ -303,6 +319,7 @@ count_uppercase (const unsigned char *buf, size_t sz)
         ['Y'] = 1, ['Z'] = 1,
     };
     unsigned n_uppercase, i;
+#endif
     n_uppercase = 0;
     for (i = 0; i < sz; ++i)
         n_uppercase += uppercase[ buf[i] ];

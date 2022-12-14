@@ -33,3 +33,5 @@ struct iovec {
                                     4804: '-': unsafe use of type 'bool' in operation
                                     */
 
+#define __func__ __FUNCTION__
+

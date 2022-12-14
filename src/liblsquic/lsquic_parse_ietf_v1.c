@@ -152,10 +152,19 @@ ietf_v1_packout_max_header_size (const struct lsquic_conn *lconn,
 
 /* [draft-ietf-quic-transport-17] Section-17.2 */
 static const unsigned char header_type_to_bin[] = {
+#if 1 // hezhiwen
+    0, // HETY_NOT_SET
+    0, // HETY_VERNEG
+    0x0, // HETY_INITIAL
+    0x3, // HETY_RETRY
+    0x2, // HETY_HANDSHAKE
+    0x1, // HETY_0RTT
+#else
     [HETY_INITIAL]      = 0x0,
     [HETY_0RTT]         = 0x1,
     [HETY_HANDSHAKE]    = 0x2,
     [HETY_RETRY]        = 0x3,
+#endif
 };
 
 
@@ -515,9 +524,16 @@ ietf_v1_parse_stream_frame (const unsigned char *buf, size_t rem_packet_sz,
     lsquic_stream_id_t stream_id;
     uint64_t offset, data_sz;
     int r;
+#if 1 // hezhiwen
+    char type;
+#endif
 
     CHECK_SPACE(1, p, pend);
+#if 1 // hezhiwen
+    type = *p++;
+#else
     const char type = *p++;
+#endif
 
     r = vint_read(p, pend, &stream_id);
     if (r < 0)
@@ -815,8 +831,13 @@ static int
 ietf_v1_gen_stop_sending_frame (unsigned char *buf, size_t len,
                             lsquic_stream_id_t stream_id, uint64_t error_code)
 {
+#if 1 // hezhiwen
+    uint64_t vals[] = { stream_id, error_code };
+    return ietf_v1_gen_two_varints(buf, len, 0x05, vals);
+#else
     return ietf_v1_gen_two_varints(buf, len, 0x05, (uint64_t[]){ stream_id,
                                                                 error_code, });
+#endif
 }
 
 
@@ -1508,15 +1529,25 @@ static int
 ietf_v1_parse_stream_blocked_frame (const unsigned char *buf, size_t len,
                             lsquic_stream_id_t *stream_id, uint64_t *offset)
 {
+#if 1 // hezhiwen
+    uint64_t* vals[] = { stream_id, offset };
+    return ietf_v1_parse_two_varints(buf, len, vals);
+#else
     return ietf_v1_parse_two_varints(buf, len,
                                        (uint64_t *[]) { stream_id, offset, });
+#endif
 }
 
 
 static unsigned
 ietf_v1_stream_blocked_frame_size (lsquic_stream_id_t stream_id, uint64_t off)
 {
+#if 1 // hezhiwen
+    uint64_t vals[] = { stream_id, off };
+    return ietf_v1_two_varints_size(vals);
+#else
     return ietf_v1_two_varints_size((uint64_t []) { stream_id, off, });
+#endif
 }
 
 
@@ -1557,7 +1588,12 @@ static int
 ietf_v1_gen_stream_blocked_frame (unsigned char *buf, size_t len,
                                     lsquic_stream_id_t stream_id, uint64_t off)
 {
+#if 1 // hezhiwen
+    uint64_t vals[] = { stream_id, off };
+    return ietf_v1_gen_two_varints(buf, len, 0x15, vals);
+#else
     return ietf_v1_gen_two_varints(buf, len, 0x15, (uint64_t[]){ stream_id, off, });
+#endif
 }
 
 
@@ -1565,14 +1601,24 @@ static int
 ietf_v1_gen_max_stream_data_frame (unsigned char *buf, size_t len,
                                     lsquic_stream_id_t stream_id, uint64_t off)
 {
+#if 1 // hezhiwen
+    uint64_t vals[] = { stream_id, off };
+    return ietf_v1_gen_two_varints(buf, len, 0x11, vals);
+#else
     return ietf_v1_gen_two_varints(buf, len, 0x11, (uint64_t[]){ stream_id, off, });
+#endif
 }
 
 
 static unsigned
 ietf_v1_max_stream_data_frame_size (lsquic_stream_id_t stream_id, uint64_t off)
 {
+#if 1 // hezhiwen
+    uint64_t vals[] = { stream_id, off };
+    return ietf_v1_two_varints_size(vals );
+#else
     return ietf_v1_two_varints_size((uint64_t []) { stream_id, off, });
+#endif
 }
 
 
@@ -1581,7 +1627,12 @@ static int
 ietf_v1_parse_max_stream_data_frame (const unsigned char *buf, size_t len,
                                 lsquic_stream_id_t *stream_id, uint64_t *off)
 {
+#if 1 // hezhiwen
+    uint64_t* vals[] = { stream_id, off };
+    return ietf_v1_parse_two_varints(buf, len, vals);
+#else
     return ietf_v1_parse_two_varints(buf, len, (uint64_t *[]){ stream_id, off, });
+#endif
 }
 
 
@@ -1693,10 +1744,17 @@ ietf_v1_gen_new_connection_id_frame (unsigned char *buf, size_t buf_sz,
 /* [draft-ietf-quic-transport-17] Section-17.2 */
 static const enum header_type bits2ht[4] =
 {
+#if 1 // hezhiwen
+    HETY_INITIAL,
+    HETY_0RTT,
+    HETY_HANDSHAKE,
+    HETY_RETRY,
+#else
     [0] = HETY_INITIAL,
     [1] = HETY_0RTT,
     [2] = HETY_HANDSHAKE,
     [3] = HETY_RETRY,
+#endif
 };
 
 
@@ -2101,9 +2159,15 @@ ietf_v1_gen_ack_frequency_frame (unsigned char *buf, size_t buf_len,
     uint64_t seqno, uint64_t pack_tol, uint64_t upd_mad, int ignore)
 {
     int sz;
+#if 1 // hezhiwen
+    uint64_t vals[] = { FRAME_TYPE_ACK_FREQUENCY, seqno, pack_tol, upd_mad };
+
+    sz = ietf_v1_gen_frame_with_varints(buf, buf_len, 4, vals);
+#else
 
     sz = ietf_v1_gen_frame_with_varints(buf, buf_len, 4,
         (uint64_t[]){ FRAME_TYPE_ACK_FREQUENCY, seqno, pack_tol, upd_mad });
+#endif
     if (sz > 0 && (size_t) sz < buf_len)
     {
         buf[sz++] = !!ignore;
@@ -2119,10 +2183,17 @@ ietf_v1_parse_ack_frequency_frame (const unsigned char *buf, size_t buf_len,
     uint64_t *seqno, uint64_t *pack_tol, uint64_t *upd_mad, int *ignore)
 {
     int sz;
+#if 1 // hezhiwen
+    uint64_t* vals[] = { seqno, pack_tol, upd_mad };
+    sz = ietf_v1_parse_frame_with_varints(buf, buf_len,
+                FRAME_TYPE_ACK_FREQUENCY,
+                3, vals);
+#else
 
     sz = ietf_v1_parse_frame_with_varints(buf, buf_len,
                 FRAME_TYPE_ACK_FREQUENCY,
                 3, (uint64_t *[]) { seqno, pack_tol, upd_mad });
+#endif
     if (sz > 0 && (size_t) sz < buf_len && buf[sz] < 2)
     {
         *ignore = buf[sz++];
@@ -2137,8 +2208,13 @@ static unsigned
 ietf_v1_ack_frequency_frame_size (uint64_t seqno, uint64_t pack_tol,
     uint64_t upd_mad)
 {
+#if 1 // hezhiwen
+    uint64_t vals[] = { FRAME_TYPE_ACK_FREQUENCY, seqno, pack_tol, upd_mad };
+    return 1 + ietf_v1_frame_with_varints_size(4, vals);
+#else
     return 1 + ietf_v1_frame_with_varints_size(4,
             (uint64_t[]){ FRAME_TYPE_ACK_FREQUENCY, seqno, pack_tol, upd_mad });
+#endif
 }
 
 
@@ -2153,8 +2229,13 @@ static int
 ietf_v1_gen_timestamp_frame (unsigned char *buf, size_t buf_len,
                                                             uint64_t timestamp)
 {
+#if 1 // hezhiwen
+    uint64_t vals[] = { FRAME_TYPE_TIMESTAMP, timestamp };
+    return ietf_v1_gen_frame_with_varints(buf, buf_len, 2, vals);
+#else
     return ietf_v1_gen_frame_with_varints(buf, buf_len, 2,
                             (uint64_t[]){ FRAME_TYPE_TIMESTAMP, timestamp });
+#endif
 }
 
 
@@ -2162,8 +2243,14 @@ static int
 ietf_v1_parse_timestamp_frame (const unsigned char *buf, size_t buf_len,
                                                             uint64_t *timestamp)
 {
+#if 1 // hezhiwen
+    uint64_t* vals[] = { timestamp };
+    return ietf_v1_parse_frame_with_varints(buf, buf_len,
+                FRAME_TYPE_TIMESTAMP, 1, vals);
+#else
     return ietf_v1_parse_frame_with_varints(buf, buf_len,
                 FRAME_TYPE_TIMESTAMP, 1, (uint64_t *[]) { timestamp });
+#endif
 }
 
 
@@ -2245,6 +2332,91 @@ ietf_v1_gen_datagram_frame (unsigned char *buf, size_t bufsz, size_t min_sz,
 
 const struct parse_funcs lsquic_parse_funcs_ietf_v1 =
 {
+#if 1 // hezhiwen
+    ietf_v1_gen_reg_pkt_header, // pf_gen_reg_pkt_header
+    ietf_v1_parse_packet_in_finish, // pf_parse_packet_in_finish
+    ietf_v1_parse_frame_type, // pf_parse_frame_type
+    ietf_v1_gen_stream_frame, // pf_gen_stream_frame
+    ietf_v1_gen_crypto_frame, // pf_gen_crypto_frame
+    ietf_v1_parse_stream_frame, // pf_parse_stream_frame
+    ietf_v1_parse_crypto_frame, // pf_parse_crypto_frame
+    ietf_v1_dec_stream_frame_size, // pf_dec_stream_frame_size
+    ietf_v1_parse_ack_frame, // pf_parse_ack_frame
+    ietf_v1_gen_ack_frame, // pf_gen_ack_frame
+    NULL, // pf_gen_stop_waiting_frame
+    NULL, // pf_parse_stop_waiting_frame
+    NULL, // pf_skip_stop_waiting_frame
+    NULL, // pf_gen_window_update_frame
+    NULL, // pf_parse_window_update_frame
+    ietf_v1_gen_blocked_frame, // pf_gen_blocked_frame
+    ietf_v1_parse_blocked_frame, // pf_parse_blocked_frame
+    ietf_v1_blocked_frame_size, // pf_blocked_frame_size
+    ietf_v1_rst_frame_size, // pf_rst_frame_size
+    ietf_v1_gen_rst_frame, // pf_gen_rst_frame
+    ietf_v1_parse_rst_frame, // pf_parse_rst_frame
+    ietf_v1_parse_stop_sending_frame, // pf_parse_stop_sending_frame
+    ietf_v1_stop_sending_frame_size, // pf_stop_sending_frame_size
+    ietf_v1_gen_stop_sending_frame, // pf_gen_stop_sending_frame
+    ietf_v1_connect_close_frame_size, // pf_connect_close_frame_size
+    ietf_v1_gen_connect_close_frame, // pf_gen_connect_close_frame
+    ietf_v1_parse_connect_close_frame, // pf_parse_connect_close_frame
+    NULL, // pf_gen_goaway_frame
+    NULL, // pf_parse_goaway_frame
+    ietf_v1_gen_ping_frame, // pf_gen_ping_frame
+    ietf_v1_parse_path_chal_frame, // pf_parse_path_chal_frame
+    ietf_v1_parse_path_resp_frame, // pf_parse_path_resp_frame
+#if 1 // ndef NDEBUG
+    NULL, // pf_write_float_time16
+    NULL, // pf_read_float_time16
+#endif
+    NULL, // pf_generate_simple_prst
+    ietf_v1_calc_stream_frame_header_sz, // pf_calc_stream_frame_header_sz
+    ietf_v1_calc_crypto_frame_header_sz, // pf_calc_crypto_frame_header_sz
+    ietf_v1_turn_on_fin, // pf_turn_on_fin
+    ietf_v1_packout_size, // pf_packout_size
+    ietf_v1_packout_max_header_size, // pf_packout_max_header_size
+    ietf_v1_calc_packno_bits, // pf_calc_packno_bits
+    ietf_v1_packno_bits2len, // pf_packno_bits2len
+    ietf_v1_parse_max_data, // pf_parse_max_data
+    ietf_v1_gen_max_data_frame, // pf_gen_max_data_frame
+    ietf_v1_max_data_frame_size, // pf_max_data_frame_size
+    ietf_v1_parse_new_conn_id, // pf_parse_new_conn_id
+    ietf_v1_stream_blocked_frame_size, // pf_stream_blocked_frame_size
+    ietf_v1_gen_stream_blocked_frame, // pf_gen_stream_blocked_frame
+    ietf_v1_parse_stream_blocked_frame, // pf_parse_stream_blocked_frame
+    ietf_v1_max_stream_data_frame_size, // pf_max_stream_data_frame_size
+    ietf_v1_gen_max_stream_data_frame, // pf_gen_max_stream_data_frame
+    ietf_v1_parse_max_stream_data_frame, // pf_parse_max_stream_data_frame
+    ietf_v1_parse_new_token_frame, // pf_parse_new_token_frame
+    ietf_v1_new_connection_id_frame_size, // pf_new_connection_id_frame_size
+    ietf_v1_gen_new_connection_id_frame, // pf_gen_new_connection_id_frame
+    ietf_v1_retire_cid_frame_size, // pf_retire_cid_frame_size
+    ietf_v1_gen_retire_cid_frame, // pf_gen_retire_cid_frame
+    ietf_v1_parse_retire_cid_frame, // pf_parse_retire_cid_frame
+    ietf_v1_new_token_frame_size, // pf_new_token_frame_size
+    ietf_v1_gen_new_token_frame, // pf_gen_new_token_frame
+    ietf_v1_gen_streams_blocked_frame, // pf_gen_streams_blocked_frame
+    ietf_v1_parse_streams_blocked_frame, // pf_parse_streams_blocked_frame
+    ietf_v1_streams_blocked_frame_size, // pf_streams_blocked_frame_size
+    ietf_v1_gen_max_streams_frame, // pf_gen_max_streams_frame
+    ietf_v1_parse_max_streams_frame, // pf_parse_max_streams_frame
+    ietf_v1_max_streams_frame_size, // pf_max_streams_frame_size
+    ietf_v1_path_chal_frame_size, // pf_path_chal_frame_size
+    ietf_v1_gen_path_chal_frame, // pf_gen_path_chal_frame
+    ietf_v1_path_resp_frame_size, // pf_path_resp_frame_size
+    ietf_v1_gen_path_resp_frame, // pf_gen_path_resp_frame
+    ietf_v1_gen_handshake_done_frame, // pf_gen_handshake_done_frame
+    ietf_v1_parse_handshake_done_frame, // pf_parse_handshake_done_frame
+    ietf_v1_handshake_done_frame_size, // pf_handshake_done_frame_size
+    ietf_v1_gen_ack_frequency_frame, // pf_gen_ack_frequency_frame
+    ietf_v1_parse_ack_frequency_frame, // pf_parse_ack_frequency_frame
+    ietf_v1_ack_frequency_frame_size, // pf_ack_frequency_frame_size
+    ietf_v1_gen_timestamp_frame, // pf_gen_timestamp_frame
+    ietf_v1_parse_timestamp_frame, // pf_parse_timestamp_frame
+    ietf_v1_parse_datagram_frame, // pf_parse_datagram_frame
+    ietf_v1_gen_datagram_frame, // pf_gen_datagram_frame
+    ietf_v1_datagram_frame_size, // pf_datagram_frame_size
+#else
     .pf_gen_reg_pkt_header            =  ietf_v1_gen_reg_pkt_header,
     .pf_parse_packet_in_finish        =  ietf_v1_parse_packet_in_finish,
     .pf_gen_stream_frame              =  ietf_v1_gen_stream_frame,
@@ -2316,4 +2488,5 @@ const struct parse_funcs lsquic_parse_funcs_ietf_v1 =
     .pf_parse_datagram_frame          =  ietf_v1_parse_datagram_frame,
     .pf_gen_datagram_frame            =  ietf_v1_gen_datagram_frame,
     .pf_datagram_frame_size           =  ietf_v1_datagram_frame_size,
+#endif
 };

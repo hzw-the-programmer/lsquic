@@ -150,6 +150,9 @@ lsquic_purga_add (struct lsquic_purga *purga, const lsquic_cid_t *cid,
     struct purga_page *last_page, *page;
     uint64_t hash;
     unsigned i, idx, set, bit;
+#if 1 // hezhiwen
+    struct purga_el pupa_el = {0};
+#endif
 
     last_page = purga_get_page(purga);
     if (!last_page)
@@ -158,9 +161,14 @@ lsquic_purga_add (struct lsquic_purga *purga, const lsquic_cid_t *cid,
     idx = last_page->pupa_count++;
     last_page->pupa_cids    [idx] = *cid;
     last_page->pupa_peer_ctx[idx] = peer_ctx;
+#if 1 // hezhiwen
+    pupa_el.puel_type = putype;
+    last_page->pupa_els     [idx] = pupa_el;
+#else
     last_page->pupa_els     [idx] = (struct purga_el) {
         .puel_type      = putype,
     };
+#endif
 
     hash = XXH64(cid->idbuf, cid->len, 0);
     for (i = 0; i < BLOOM_N_FUNCS; ++i)

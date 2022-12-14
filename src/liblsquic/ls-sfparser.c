@@ -3034,6 +3034,18 @@ static int yy_flex_strlen (yyconst char * s , yyscan_t yyscanner)
 
 const char *const ls_sf_dt2str[] =
 {
+#if 1 // hezhiwen
+    "INTEGER",
+    "DECIMAL",
+    "NAME",
+    "PARAM_NAME",
+    "STRING",
+    "TOKEN",
+    "BYTESEQ",
+    "BOOLEAN",
+    "INNER_LIST_BEGIN",
+    "INNER_LIST_END",
+#else
     [LS_SF_DT_INTEGER]      = "INTEGER",
     [LS_SF_DT_DECIMAL]      = "DECIMAL",
     [LS_SF_DT_NAME]         = "NAME",
@@ -3044,6 +3056,7 @@ const char *const ls_sf_dt2str[] =
     [LS_SF_DT_BOOLEAN]      = "BOOLEAN",
     [LS_SF_DT_INNER_LIST_BEGIN] = "INNER_LIST_BEGIN",
     [LS_SF_DT_INNER_LIST_END] = "INNER_LIST_END",
+#endif
 };
 
 

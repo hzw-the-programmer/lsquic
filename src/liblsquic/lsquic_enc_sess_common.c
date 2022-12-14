@@ -12,10 +12,17 @@
 
 const char *const lsquic_enclev2str[] =
 {
+#if 1 // hezhiwen
+    "clear",
+    "early",
+    "initial",
+    "forw-secure",
+#else
     [ENC_LEV_EARLY] = "early",
     [ENC_LEV_CLEAR] = "clear",
     [ENC_LEV_INIT]  = "initial",
     [ENC_LEV_FORW]  = "forw-secure",
+#endif
 };
 
 

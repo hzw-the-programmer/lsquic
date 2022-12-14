@@ -226,10 +226,16 @@ lsquic_hexdump (const void *src_void, size_t src_sz, char *out, size_t out_sz)
     while (src < src_end && out_end - out >= LINE_SIZE)
     {
         const unsigned char *limit = src + 16;
-        if (limit > src_end)
-            limit = src_end;
+    #if 1
         unsigned hex_off   = 6;
         unsigned alpha_off = 57;
+    #endif
+        if (limit > src_end)
+            limit = src_end;
+    #if 0
+        unsigned hex_off   = 6;
+        unsigned alpha_off = 57;
+    #endif
         sprintf(out, "%03X0", line++);
         out[4] = ' ';
         out[5] = ' ';

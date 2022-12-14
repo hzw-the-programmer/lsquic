@@ -107,6 +107,9 @@ static int
 qdh_write_type (struct qpack_dec_hdl *qdh)
 {
     int s;
+#if 1 // hezhiwen
+    unsigned char buf[8] = {0};
+#endif
 
 #ifndef NDEBUG
     const char *env = getenv("LSQUIC_RND_VARINT_LEN");
@@ -121,6 +124,27 @@ qdh_write_type (struct qpack_dec_hdl *qdh)
 
     switch (s)
     {
+#if 1 // hezhiwen
+    case 0:
+        buf[0] = HQUST_QPACK_DEC;
+        return qdh_write_decoder(qdh,
+                                buf, 1);
+    case 1:
+        buf[0] = 0x40;
+        buf[1] = HQUST_QPACK_DEC;
+        return qdh_write_decoder(qdh,
+                            buf, 2);
+    case 2:
+        buf[0] = 0x80;
+        buf[3] = HQUST_QPACK_DEC;
+        return qdh_write_decoder(qdh,
+                buf, 4);
+    default:
+        buf[0] = 0xC0;
+        buf[7] = HQUST_QPACK_DEC;
+        return qdh_write_decoder(qdh,
+                buf, 8);
+#else
     case 0:
         return qdh_write_decoder(qdh,
                                 (unsigned char []) { HQUST_QPACK_DEC }, 1);
@@ -134,6 +158,7 @@ qdh_write_type (struct qpack_dec_hdl *qdh)
         return qdh_write_decoder(qdh,
                 (unsigned char []) { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                                         HQUST_QPACK_DEC }, 8);
+#endif
     }
 }
 
@@ -189,11 +214,17 @@ lsquic_qdh_init (struct qpack_dec_hdl *qdh, struct lsquic_conn *conn,
     qdh->qdh_enpub = enpub;
     if (qdh->qdh_enpub->enp_hsi_if == lsquic_http1x_if)
     {
+    #if 1 // hezhiwen
+        qdh->qdh_h1x_ctor_ctx.conn = conn;
+        qdh->qdh_h1x_ctor_ctx.max_headers_sz = MAX_HTTP1X_HEADERS_SIZE;
+        qdh->qdh_h1x_ctor_ctx.is_server = is_server;
+    #else
         qdh->qdh_h1x_ctor_ctx = (struct http1x_ctor_ctx) {
             .conn           = conn,
             .max_headers_sz = MAX_HTTP1X_HEADERS_SIZE,
             .is_server      = is_server,
         };
+    #endif
         qdh->qdh_hsi_ctx = &qdh->qdh_h1x_ctor_ctx;
     }
     else
@@ -285,11 +316,17 @@ qdh_out_on_write (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
         return;
     }
 
+#if 1 // hezhiwen
+    reader.lsqr_read = lsquic_frab_list_read;
+    reader.lsqr_size = lsquic_frab_list_size;
+    reader.lsqr_ctx = &qdh->qdh_fral;
+#else
     reader = (struct lsquic_reader) {
         .lsqr_read  = lsquic_frab_list_read,
         .lsqr_size  = lsquic_frab_list_size,
         .lsqr_ctx   = &qdh->qdh_fral,
     };
+#endif
 
     nw = lsquic_stream_writef(stream, &reader);
     if (nw >= 0)
@@ -337,10 +374,27 @@ qdh_out_on_read (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 
 static const struct lsquic_stream_if qdh_dec_sm_out_if =
 {
+#if 1 // hezhiwen
+    NULL, // on_new_conn
+    NULL, // on_goaway_received
+    NULL, // on_conn_closed
+    qdh_out_on_new, // on_new_stream
+    qdh_out_on_read, // on_read
+    qdh_out_on_write, // on_write
+    qdh_out_on_close, // on_close
+    NULL, // on_dg_write
+    NULL, // on_datagram
+    NULL, // on_hsk_done
+    NULL, // on_new_token
+    NULL, // on_sess_resume_info
+    NULL, // on_reset
+    NULL, // on_conncloseframe_received
+#else
     .on_new_stream  = qdh_out_on_new,
     .on_read        = qdh_out_on_read,
     .on_write       = qdh_out_on_write,
     .on_close       = qdh_out_on_close,
+#endif
 };
 const struct lsquic_stream_if *const lsquic_qdh_dec_sm_out_if =
                                                     &qdh_dec_sm_out_if;
@@ -439,10 +493,27 @@ qdh_in_on_write (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 
 static const struct lsquic_stream_if qdh_enc_sm_in_if =
 {
+#if 1 // hezhiwen
+    NULL, // on_new_conn
+    NULL, // on_goaway_received
+    NULL, // on_conn_closed
+    qdh_in_on_new, // on_new_stream
+    qdh_in_on_read, // on_read
+    qdh_in_on_write, // on_write
+    qdh_in_on_close, // on_close
+    NULL, // on_dg_write
+    NULL, // on_datagram
+    NULL, // on_hsk_done
+    NULL, // on_new_token
+    NULL, // on_sess_resume_info
+    NULL, // on_reset
+    NULL, // on_conncloseframe_received
+#else
     .on_new_stream  = qdh_in_on_new,
     .on_read        = qdh_in_on_read,
     .on_write       = qdh_in_on_write,
     .on_close       = qdh_in_on_close,
+#endif
 };
 const struct lsquic_stream_if *const lsquic_qdh_enc_sm_in_if =
                                                     &qdh_enc_sm_in_if;
@@ -605,9 +676,15 @@ qdh_process_header (void *stream_p, struct lsxpack_header *xhdr)
 
 static const struct lsqpack_dec_hset_if dhi_if =
 {
+#if 1 // hezhiwen
+    qdh_hblock_unblocked,
+    qdh_prepare_decode,
+    qdh_process_header,
+#else
     .dhi_unblocked      = qdh_hblock_unblocked,
     .dhi_prepare_decode = qdh_prepare_decode,
     .dhi_process_header = qdh_process_header,
+#endif
 };
 
 
@@ -746,10 +823,15 @@ lsquic_qdh_header_in_begin (struct qpack_dec_hdl *qdh,
     u->ctx.hset   = hset;
     u->ctx.qdh    = qdh;
     u->ctx.ppc_flags = 0;
+#if 1 // hezhiwen
+    u->ctx.ehp.urgency = LSQUIC_DEF_HTTP_URGENCY;
+    u->ctx.ehp.incremental = LSQUIC_DEF_HTTP_INCREMENTAL;
+#else
     u->ctx.ehp       = (struct lsquic_ext_http_prio) {
                             .urgency     = LSQUIC_DEF_HTTP_URGENCY,
                             .incremental = LSQUIC_DEF_HTTP_INCREMENTAL,
     };
+#endif
     stream->sm_hblock_ctx = u;
 
     if (qdh->qdh_exp_rec)

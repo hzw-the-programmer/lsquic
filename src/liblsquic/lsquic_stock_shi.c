@@ -203,9 +203,15 @@ lsquic_stock_shared_hash_destroy (struct stock_shared_hash *hash)
 
 const struct lsquic_shared_hash_if stock_shi =
 {
+#if 1
+    stock_shi_insert,
+    stock_shi_delete,
+    stock_shi_lookup,
+#else
     .shi_insert = stock_shi_insert,
     .shi_delete = stock_shi_delete,
     .shi_lookup = stock_shi_lookup,
+#endif
 };
 
 

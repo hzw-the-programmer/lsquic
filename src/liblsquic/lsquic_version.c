@@ -12,6 +12,15 @@
 
 static const unsigned char version_tags[N_LSQVER][4] =
 {
+#if 1
+    { 'Q', '0', '4', '3', },
+    { 'Q', '0', '4', '6', },
+    { 'Q', '0', '5', '0', },
+    { 0xFF, 0, 0, 27, },
+    { 0xFF, 0, 0, 29, },
+    {    0, 0, 0, 1, },
+    { 0xFA, 0xFA, 0xFA, 0xFA, },
+#else
     [LSQVER_043] = { 'Q', '0', '4', '3', },
     [LSQVER_046] = { 'Q', '0', '4', '6', },
     [LSQVER_050] = { 'Q', '0', '5', '0', },
@@ -19,6 +28,7 @@ static const unsigned char version_tags[N_LSQVER][4] =
     [LSQVER_ID29] = { 0xFF, 0, 0, 29, },
     [LSQVER_I001] = {    0, 0, 0, 1, },
     [LSQVER_VERNEG] = { 0xFA, 0xFA, 0xFA, 0xFA, },
+#endif
 };
 
 
@@ -48,6 +58,15 @@ lsquic_tag2ver (uint32_t ver_tag)
 
 
 const char *const lsquic_ver2str[N_LSQVER] = {
+#if 1
+    "Q043",
+    "Q046",
+    "Q050",
+    "FF00001B",
+    "FF00001D",
+    "00000001",
+    "FAFAFAFA",
+#else
     [LSQVER_043] = "Q043",
     [LSQVER_046] = "Q046",
     [LSQVER_050] = "Q050",
@@ -55,10 +74,20 @@ const char *const lsquic_ver2str[N_LSQVER] = {
     [LSQVER_ID29] = "FF00001D",
     [LSQVER_I001] = "00000001",
     [LSQVER_VERNEG] = "FAFAFAFA",
+#endif
 };
 
 
 const char *const lsquic_ver2altstr[N_LSQVER] = {
+#if 1
+    NULL,
+    NULL,
+    NULL,
+    "h3-27",
+    "h3-29",
+    "h3",
+    "VERNEG",
+#else
     [LSQVER_043] = NULL,
     [LSQVER_046] = NULL,
     [LSQVER_050] = NULL,
@@ -66,6 +95,7 @@ const char *const lsquic_ver2altstr[N_LSQVER] = {
     [LSQVER_ID29] = "h3-29",
     [LSQVER_I001] = "h3",
     [LSQVER_VERNEG] = "VERNEG",
+#endif
 };
 
 

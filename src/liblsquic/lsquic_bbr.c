@@ -134,10 +134,17 @@ static uint64_t lsquic_bbr_get_cwnd (void *);
 
 static const char *const mode2str[] =
 {
+#if 1 // hezhiwen
+    "STARTUP",
+    "DRAIN",
+    "PROBE_BW",
+    "PROBE_RTT",
+#else
     [BBR_MODE_STARTUP]   = "STARTUP",
     [BBR_MODE_DRAIN]     = "DRAIN",
     [BBR_MODE_PROBE_BW]  = "PROBE_BW",
     [BBR_MODE_PROBE_RTT] = "PROBE_RTT",
+#endif
 };
 
 
@@ -646,11 +653,21 @@ check_if_full_bw_reached (struct lsquic_bbr *bbr)
     {
         bbr->bbr_bw_at_last_round = bw;
         bbr->bbr_round_wo_bw_gain = 0;
+    #if 1 // hezhiwen
+        if (bbr->bbr_flags & BBR_FLAG_EXPIRE_ACK_AGG_IN_STARTUP) {
+            // Expire old excess delivery measurements now that bandwidth
+            // increased.
+            struct minmax_sample sample = { bbr->bbr_round_count, 0, };
+            minmax_reset(&bbr->bbr_max_ack_height,
+                        sample);
+        }
+    #else
         if (bbr->bbr_flags & BBR_FLAG_EXPIRE_ACK_AGG_IN_STARTUP)
             // Expire old excess delivery measurements now that bandwidth
             // increased.
             minmax_reset(&bbr->bbr_max_ack_height,
                         ((struct minmax_sample) { bbr->bbr_round_count, 0, }));
+    #endif
         LSQ_DEBUG("BW estimate %"PRIu64"bps greater than or equal to target "
             "%"PRIu64"bps: full BW not reached",
             BW_VALUE(&bw), BW_VALUE(&target));
@@ -842,6 +859,9 @@ static void
 calculate_pacing_rate (struct lsquic_bbr *bbr)
 {
     struct bandwidth bw, target_rate;
+#if 1 //hezhiwen
+    int has_ever_detected_loss;
+#endif
 
     bw = BW(minmax_get(&bbr->bbr_max_bandwidth));
     if (BW_IS_ZERO(&bw))
@@ -868,7 +888,11 @@ calculate_pacing_rate (struct lsquic_bbr *bbr)
     }
 
     // Slow the pacing rate in STARTUP once loss has ever been detected.
+#if 1 // hezhiwen
+    has_ever_detected_loss = bbr->bbr_end_recovery_at != 0;
+#else
     const int has_ever_detected_loss = bbr->bbr_end_recovery_at != 0;
+#endif
     if (has_ever_detected_loss
             && (bbr->bbr_flags & (BBR_FLAG_SLOWER_STARTUP
                                   |BBR_FLAG_HAS_NON_APP_LIMITED))
@@ -906,10 +930,18 @@ static void
 calculate_cwnd (struct lsquic_bbr *bbr, uint64_t bytes_acked,
                                                   uint64_t excess_acked)
 {
+#if 1 // hezhiwen
+    uint64_t target_window;
+    int add_bytes_acked;
+#endif
     if (bbr->bbr_mode == BBR_MODE_PROBE_RTT)
         return;
 
+#if 1 // hezhiwen
+    target_window = get_target_cwnd(bbr, bbr->bbr_cwnd_gain);
+#else
     uint64_t target_window = get_target_cwnd(bbr, bbr->bbr_cwnd_gain);
+#endif
     if (bbr->bbr_flags & BBR_FLAG_IS_AT_FULL_BANDWIDTH)
         // Add the max recently measured ack aggregation to CWND.
         target_window += minmax_get(&bbr->bbr_max_ack_height);
@@ -921,8 +953,13 @@ calculate_cwnd (struct lsquic_bbr *bbr, uint64_t bytes_acked,
     // Instead of immediately setting the target CWND as the new one, BBR grows
     // the CWND towards |target_window| by only increasing it |bytes_acked| at a
     // time.
+#if 1 // hezhiwen
+    add_bytes_acked =
+	!FLAGS_quic_bbr_no_bytes_acked_in_startup_recovery || !in_recovery(bbr);
+#else
     const int add_bytes_acked =
 	!FLAGS_quic_bbr_no_bytes_acked_in_startup_recovery || !in_recovery(bbr);
+#endif
     if (bbr->bbr_flags & BBR_FLAG_IS_AT_FULL_BANDWIDTH)
         bbr->bbr_cwnd = MIN(target_window, bbr->bbr_cwnd + bytes_acked);
     else if (add_bytes_acked &&
@@ -1070,6 +1107,21 @@ lsquic_bbr_timeout (void *cong_ctl) {   /* Noop */   }
 
 const struct cong_ctl_if lsquic_cong_bbr_if =
 {
+#if 1 // hezhiwen
+    lsquic_bbr_init, // cci_init
+    lsquic_bbr_reinit, // cci_reinit
+    lsquic_bbr_ack, // cci_ack
+    lsquic_bbr_loss, // cci_loss
+    lsquic_bbr_begin_ack, // cci_begin_ack
+    lsquic_bbr_end_ack, // cci_end_ack
+    lsquic_bbr_sent, // cci_sent
+    lsquic_bbr_lost, // cci_lost
+    lsquic_bbr_timeout, // cci_timeout
+    lsquic_bbr_was_quiet, // cci_was_quiet
+    lsquic_bbr_get_cwnd, // cci_get_cwnd
+    lsquic_bbr_pacing_rate, // cci_pacing_rate
+    lsquic_bbr_cleanup, // cci_cleanup
+#else
     .cci_ack           = lsquic_bbr_ack,
     .cci_begin_ack     = lsquic_bbr_begin_ack,
     .cci_end_ack       = lsquic_bbr_end_ack,
@@ -1083,4 +1135,5 @@ const struct cong_ctl_if lsquic_cong_bbr_if =
     .cci_timeout       = lsquic_bbr_timeout,
     .cci_sent          = lsquic_bbr_sent,
     .cci_was_quiet     = lsquic_bbr_was_quiet,
+#endif
 };

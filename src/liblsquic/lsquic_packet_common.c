@@ -49,40 +49,71 @@ lsquic_frame_types_to_str (char *buf, size_t bufsz,
 
 const char *const lsquic_hety2str[] =
 {
+#if 1 // hezhiwen
+    "Short",
+    "Version Negotiation",
+    "Initial",
+    "Retry",
+    "Handshake",
+    "0-RTT",
+#else
     [HETY_NOT_SET]      = "Short",
     [HETY_VERNEG]       = "Version Negotiation",
     [HETY_INITIAL]      = "Initial",
     [HETY_RETRY]        = "Retry",
     [HETY_HANDSHAKE]    = "Handshake",
     [HETY_0RTT]         = "0-RTT",
+#endif
 };
 
 
 /* [draft-ietf-quic-tls-14], Section 4 */
 const enum packnum_space lsquic_hety2pns[] =
 {
+#if 1 // hezhiwen
+    PNS_APP,
+    0,
+    PNS_INIT,
+    0,
+    PNS_HSK,
+    PNS_APP,
+#else
     [HETY_NOT_SET]      = PNS_APP,
     [HETY_VERNEG]       = 0,
     [HETY_INITIAL]      = PNS_INIT,
     [HETY_RETRY]        = 0,
     [HETY_HANDSHAKE]    = PNS_HSK,
     [HETY_0RTT]         = PNS_APP,
+#endif
 };
 
 
 /* [draft-ietf-quic-tls-14], Section 4 */
 const enum packnum_space lsquic_enclev2pns[] =
 {
+#if 1 // hezhiwen
+    PNS_INIT,
+    PNS_APP,
+    PNS_HSK,
+    PNS_APP,
+#else
     [ENC_LEV_CLEAR]      = PNS_INIT,
     [ENC_LEV_INIT]       = PNS_HSK,
     [ENC_LEV_EARLY]      = PNS_APP,
     [ENC_LEV_FORW]       = PNS_APP,
+#endif
 };
 
 
 const char *const lsquic_pns2str[] =
 {
+#if 1 // hezhiwen
+    "Init PNS",
+    "Handshake PNS",
+    "App PNS",
+#else
     [PNS_INIT]  = "Init PNS",
     [PNS_HSK]   = "Handshake PNS",
     [PNS_APP]   = "App PNS",
+#endif
 };

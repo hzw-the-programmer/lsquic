@@ -540,6 +540,9 @@ lsquic_engine_new (unsigned flags,
     size_t alpn_len;
     unsigned i;
     char err_buf[100];
+#if 1
+    int tag_buf_len;
+#endif
 
     if (!api->ea_packets_out)
     {
@@ -585,7 +588,9 @@ lsquic_engine_new (unsigned flags,
         engine->pub.enp_settings        = *api->ea_settings;
     else
         lsquic_engine_init_settings(&engine->pub.enp_settings, flags);
+#if 0
     int tag_buf_len;
+#endif
     tag_buf_len = lsquic_gen_ver_tags(engine->pub.enp_ver_tags_buf,
                                     sizeof(engine->pub.enp_ver_tags_buf),
                                     engine->pub.enp_settings.es_versions);
@@ -1303,9 +1308,15 @@ find_conn (lsquic_engine_t *engine, lsquic_packet_in_t *packet_in,
 
 
 static const char *const puty2str[] = {
+#if 1
+    "deleted",
+    "being drained",
+    "retired",
+#else
     [PUTY_CONN_DELETED] = "deleted",
     [PUTY_CONN_DRAIN]   = "being drained",
     [PUTY_CID_RETIRED]  = "retired",
+#endif
 };
 
 
@@ -1317,6 +1328,10 @@ find_or_create_conn (lsquic_engine_t *engine, lsquic_packet_in_t *packet_in,
     struct lsquic_hash_elem *el;
     struct purga_el *puel;
     lsquic_conn_t *conn;
+#if 1
+    const struct parse_funcs *pf;
+    enum lsquic_version version;
+#endif
 
     if (!(packet_in->pi_flags & PI_CONN_ID))
     {
@@ -1397,8 +1412,10 @@ find_or_create_conn (lsquic_engine_t *engine, lsquic_packet_in_t *packet_in,
     if (0 != maybe_grow_conn_heaps(engine))
         return NULL;
 
+#if 0
     const struct parse_funcs *pf;
     enum lsquic_version version;
+#endif
     switch (version_matches(engine, packet_in, &version))
     {
     case VER_UNSUPPORTED:
@@ -1942,8 +1959,13 @@ engine_decref_conn (lsquic_engine_t *engine, lsquic_conn_t *conn,
 static void
 force_close_conn (lsquic_engine_t *engine, lsquic_conn_t *conn)
 {
-    assert(engine->flags & ENG_DTOR);
+#if 1
     const enum lsquic_conn_flags flags = conn->cn_flags;
+#endif
+    assert(engine->flags & ENG_DTOR);
+#if 0
+    const enum lsquic_conn_flags flags = conn->cn_flags;
+#endif
     assert(conn->cn_flags & CONN_REF_FLAGS);
     assert(!(flags & LSCONN_HAS_OUTGOING));  /* Should be removed already */
     assert(!(flags & LSCONN_TICKABLE));    /* Should be removed already */
@@ -2444,7 +2466,11 @@ send_batch (lsquic_engine_t *engine, const struct send_batch_ctx *sb_ctx,
     n_sent = engine->packets_out(engine->packets_out_ctx, batch->outs + skip,
                                                             n_to_send - skip);
     e_val = errno;
+#if 1
+    if (n_sent < (int) (n_to_send - skip))
+#else
     if (n_sent < (int) (n_to_send - skip) && e_val != EMSGSIZE)
+#endif
     {
         engine->pub.enp_flags &= ~ENPUB_CAN_SEND;
         engine->resume_sending_at = now + 1000000;
@@ -2496,7 +2522,11 @@ send_batch (lsquic_engine_t *engine, const struct send_batch_ctx *sb_ctx,
         }
         while (++packet_out < end);
     }
+#if 1
+    if (i < (int) n_to_send)
+#else
     if (i < (int) n_to_send && e_val == EMSGSIZE)
+#endif
     {
         LSQ_DEBUG("packet #%d could not be sent out for being too large", i);
         if (batch->conns[i]->cn_if->ci_packet_too_large
@@ -2695,8 +2725,13 @@ send_packets_out (struct lsquic_engine *engine,
             && iov < batch->iov + sizeof(batch->iov) / sizeof(batch->iov[0]))
         {
             const struct to_coal to_coal = {
+            #if 1
+                packet_out,
+                iov_size(packet_iov, iov),
+            #else
                 .prev_packet = packet_out,
                 .prev_sz_sum = iov_size(packet_iov, iov),
+            #endif
             };
             packet_out = conn->cn_if->ci_next_packet_to_send(conn, &to_coal);
             if (packet_out)

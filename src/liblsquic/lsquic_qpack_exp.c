@@ -23,10 +23,17 @@ lsquic_qpack_exp_destroy (struct qpack_exp_record *exp)
 
 
 static const char *const flag2tag[] = {
+#if 1
+    "server",
+    "user-agent",
+    "user-agent",
+    "server",
+#else
     [QER_SERVER|QER_ENCODER]    = "server",
     [QER_SERVER|0]              = "user-agent",
     [0         |QER_ENCODER]    = "user-agent",
     [0         |0]              = "server",
+#endif
 };
 
 

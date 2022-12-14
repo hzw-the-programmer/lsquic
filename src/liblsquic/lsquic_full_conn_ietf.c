@@ -255,8 +255,10 @@ enum send_flags
 #define ABORT_WARN(...) \
     ABORT_WITH_FLAG(conn, LSQ_LOG_WARN, IFC_ERROR, __VA_ARGS__)
 
+#if 0 // hezhiwen
 #define CONN_ERR(app_error_, code_) (struct conn_err) { \
                             .app_error = (app_error_), .u.err = (code_), }
+#endif
 
 /* Use this for protocol errors; they do not need to be as loud as our own
  * internal errors.
@@ -297,6 +299,14 @@ struct conn_err
     }                           u;
 };
 
+#if 1 // hezhiwen
+static struct conn_err CONN_ERR(int app_error_, unsigned code_) {
+    struct conn_err err = {0};
+    err.app_error = app_error_;
+    err.u.err = code_;
+    return err;
+}
+#endif
 
 struct dplpmtud_state
 {
@@ -973,12 +983,21 @@ crypto_stream_enc_level (void *streamp)
 
 static const struct crypto_stream_if crypto_stream_if =
 {
+#if 1 // hezhiwen
+    crypto_stream_write, // csi_write
+    crypto_stream_flush, // csi_flush
+    crypto_stream_readf, // csi_readf
+    crypto_stream_wantwrite, // csi_wantwrite
+    crypto_stream_wantread, // csi_wantread
+    crypto_stream_enc_level, // csi_enc_level
+#else
     .csi_write      = crypto_stream_write,
     .csi_flush      = crypto_stream_flush,
     .csi_readf      = crypto_stream_readf,
     .csi_wantwrite  = crypto_stream_wantwrite,
     .csi_wantread   = crypto_stream_wantread,
     .csi_enc_level  = crypto_stream_enc_level,
+#endif
 };
 
 
@@ -1862,6 +1881,9 @@ generate_ack_frame_for_pns (struct ietf_full_conn *conn,
 {
     const uint64_t *ecn_counts;
     int has_missing, w;
+#if 1 // hezhiwen
+    char buf[0x100];
+#endif
 
     if (conn->ifc_incoming_ecn
                         && lsquic_send_ctl_ecn_turned_on(&conn->ifc_send_ctl))
@@ -1890,7 +1912,9 @@ generate_ack_frame_for_pns (struct ietf_full_conn *conn,
         return -1;
     }
     CONN_STATS(out.acks, 1);
+#if 0 // hezhiwen
     char buf[0x100];
+#endif
     lsquic_hexstr(packet_out->po_data + packet_out->po_data_sz, w, buf, sizeof(buf));
     LSQ_DEBUG("ACK bytes: %s", buf);
     EV_LOG_GENERATED_ACK_FRAME(LSQUIC_LOG_CONN_ID, conn->ifc_conn.cn_pf,
@@ -3237,10 +3261,17 @@ ietf_full_conn_ci_going_away (struct lsquic_conn *lconn)
     {
         if (!(conn->ifc_flags & (IFC_CLOSING|IFC_GOING_AWAY)))
         {
+        #if 1 // hezhiwen
+            lsquic_stream_id_t stream_id;
+        #endif
             LSQ_INFO("connection marked as going away, last stream: %" PRIu64,
                      conn->ifc_max_req_id);
             conn->ifc_flags |= IFC_GOING_AWAY;
+        #if 1 // hezhiwen
+            stream_id = conn->ifc_max_req_id + N_SITS;
+        #else
             const lsquic_stream_id_t stream_id = conn->ifc_max_req_id + N_SITS;
+        #endif
             if (valid_stream_id(stream_id))
             {
                 if (0 == lsquic_hcso_write_goaway(&conn->ifc_hcso,
@@ -4318,8 +4349,10 @@ process_crypto_stream_write_events (struct ietf_full_conn *conn)
 static void
 maybe_conn_flush_special_streams (struct ietf_full_conn *conn)
 {
+#if 0 // hezhiwen
     if (!(conn->ifc_flags & IFC_HTTP))
         return;
+#endif
 
     struct lsquic_stream *const streams[] = {
         conn->ifc_hcso.how_stream,
@@ -4327,6 +4360,11 @@ maybe_conn_flush_special_streams (struct ietf_full_conn *conn)
         conn->ifc_qdh.qdh_dec_sm_out,
     };
     struct lsquic_stream *const *stream;
+
+#if 1 // hezhiwen
+    if (!(conn->ifc_flags & IFC_HTTP))
+        return;
+#endif
 
     for (stream = streams; stream < streams + sizeof(streams)
                                             / sizeof(streams[0]); ++stream)
@@ -6696,6 +6734,35 @@ typedef unsigned (*process_frame_f)(
 
 static process_frame_f const process_frames[N_QUIC_FRAMES] =
 {
+#if 1 // hezhiwen
+    NULL, // QUIC_FRAME_INVALID
+    process_stream_frame, // QUIC_FRAME_STREAM
+    process_ack_frame, // QUIC_FRAME_ACK
+    process_padding_frame, // QUIC_FRAME_PADDING
+    process_rst_stream_frame, // QUIC_FRAME_RST_STREAM
+    process_connection_close_frame, // QUIC_FRAME_CONNECTION_CLOSE
+    NULL, // QUIC_FRAME_GOAWAY
+    NULL, // QUIC_FRAME_WINDOW_UPDATE
+    process_blocked_frame, // QUIC_FRAME_BLOCKED
+    NULL, // QUIC_FRAME_STOP_WAITING
+    process_ping_frame, // QUIC_FRAME_PING
+    process_max_data_frame, // QUIC_FRAME_MAX_DATA
+    process_max_stream_data_frame, // QUIC_FRAME_MAX_STREAM_DATA
+    process_max_streams_frame, // QUIC_FRAME_MAX_STREAMS
+    process_stream_blocked_frame, // QUIC_FRAME_STREAM_BLOCKED
+    process_streams_blocked_frame, // QUIC_FRAME_STREAMS_BLOCKED
+    process_new_connection_id_frame, // QUIC_FRAME_NEW_CONNECTION_ID
+    process_stop_sending_frame, // QUIC_FRAME_STOP_SENDING
+    process_path_challenge_frame, // QUIC_FRAME_PATH_CHALLENGE
+    process_path_response_frame, // QUIC_FRAME_PATH_RESPONSE
+    process_crypto_frame, // QUIC_FRAME_CRYPTO
+    process_retire_connection_id_frame, // QUIC_FRAME_RETIRE_CONNECTION_ID
+    process_new_token_frame, // QUIC_FRAME_NEW_TOKEN
+    process_handshake_done_frame, // QUIC_FRAME_HANDSHAKE_DONE
+    process_ack_frequency_frame, // QUIC_FRAME_ACK_FREQUENCY
+    process_timestamp_frame, // QUIC_FRAME_TIMESTAMP
+    process_datagram_frame, // QUIC_FRAME_DATAGRAM
+#else
     [QUIC_FRAME_PADDING]            =  process_padding_frame,
     [QUIC_FRAME_RST_STREAM]         =  process_rst_stream_frame,
     [QUIC_FRAME_CONNECTION_CLOSE]   =  process_connection_close_frame,
@@ -6719,6 +6786,7 @@ static process_frame_f const process_frames[N_QUIC_FRAMES] =
     [QUIC_FRAME_ACK_FREQUENCY]      =  process_ack_frequency_frame,
     [QUIC_FRAME_TIMESTAMP]          =  process_timestamp_frame,
     [QUIC_FRAME_DATAGRAM]           =  process_datagram_frame,
+#endif
 };
 
 
@@ -7793,6 +7861,28 @@ ietf_full_conn_ci_packet_sent_pre_hsk (struct lsquic_conn *lconn,
 static void (*const send_funcs[N_SEND])(
                             struct ietf_full_conn *, lsquic_time_t) =
 {
+#if 1 // hezhiwen
+    generate_path_chal_0, // SEND_PATH_CHAL_PATH_0
+    generate_path_chal_1, // SEND_PATH_CHAL_PATH_1
+    generate_path_chal_2, // SEND_PATH_CHAL_PATH_2
+    generate_path_chal_3, // SEND_PATH_CHAL_PATH_3
+    generate_path_resp_0, // SEND_PATH_RESP_PATH_0
+    generate_path_resp_1, // SEND_PATH_RESP_PATH_1
+    generate_path_resp_2, // SEND_PATH_RESP_PATH_2
+    generate_path_resp_3, // SEND_PATH_RESP_PATH_3
+    NULL, // SEND_MAX_DATA
+    generate_ping_frame, // SEND_PING
+    generate_new_cid_frames, // SEND_NEW_CID
+    generate_retire_cid_frames, // SEND_RETIRE_CID
+    NULL, // SEND_CONN_CLOSE
+    generate_streams_blocked_bidi_frame, // SEND_STREAMS_BLOCKED_BIDI
+    generate_streams_blocked_uni_frame, // SEND_STREAMS_BLOCKED_UNI
+    generate_max_streams_bidi_frame, // SEND_MAX_STREAMS_BIDI
+    generate_max_streams_uni_frame, // SEND_MAX_STREAMS_UNI
+    generate_stop_sending_frames, // SEND_STOP_SENDING
+    generate_handshake_done_frame, // SEND_HANDSHAKE_DONE
+    generate_ack_frequency_frame, // SEND_ACK_FREQUENCY
+#else
     [SEND_NEW_CID]      = generate_new_cid_frames,
     [SEND_RETIRE_CID]   = generate_retire_cid_frames,
     [SEND_STREAMS_BLOCKED_UNI]  = generate_streams_blocked_uni_frame,
@@ -7811,6 +7901,7 @@ static void (*const send_funcs[N_SEND])(
     [SEND_PING]                = generate_ping_frame,
     [SEND_HANDSHAKE_DONE]      = generate_handshake_done_frame,
     [SEND_ACK_FREQUENCY]       = generate_ack_frequency_frame,
+#endif
 };
 
 
@@ -8872,6 +8963,61 @@ ietf_full_conn_ci_log_stats (struct lsquic_conn *lconn)
     .ci_write_ack            =  ietf_full_conn_ci_write_ack
 
 static const struct conn_iface ietf_full_conn_iface = {
+#if 1 // hezhiwen
+    ietf_full_conn_ci_tick, // ci_tick
+    ietf_full_conn_ci_packet_in, // ci_packet_in
+    ietf_full_conn_ci_next_packet_to_send, // ci_next_packet_to_send
+    ietf_full_conn_ci_packet_sent, // ci_packet_sent
+    ietf_full_conn_ci_packet_not_sent, // ci_packet_not_sent
+    ietf_full_conn_ci_packet_too_large, // ci_packet_too_large
+    ietf_full_conn_ci_hsk_done, // ci_hsk_done
+    ietf_full_conn_ci_destroy, // ci_destroy
+    ietf_full_conn_ci_is_tickable, // ci_is_tickable
+    ietf_full_conn_ci_next_tick_time, // ci_next_tick_time
+    ietf_full_conn_ci_can_write_ack, // ci_can_write_ack
+    ietf_full_conn_ci_write_ack, // ci_write_ack
+#if LSQUIC_CONN_STATS
+    ietf_full_conn_ci_get_stats, // ci_get_stats
+    ietf_full_conn_ci_log_stats, // ci_log_stats
+#endif
+    ietf_full_conn_ci_client_call_on_new, // ci_client_call_on_new
+    ietf_full_conn_ci_status, // ci_status
+    ietf_full_conn_ci_n_avail_streams, // ci_n_avail_streams
+    ietf_full_conn_ci_n_pending_streams, // ci_n_pending_streams
+    ietf_full_conn_ci_cancel_pending_streams, // ci_cancel_pending_streams
+    ietf_full_conn_ci_going_away, // ci_going_away
+    ietf_full_conn_ci_is_push_enabled, // ci_is_push_enabled
+    NULL, // ci_get_stream_by_id
+    ietf_full_conn_ci_get_engine, // ci_get_engine
+    ietf_full_conn_ci_make_stream, // ci_make_stream
+    ietf_full_conn_ci_abort, // ci_abort
+    ietf_full_conn_ci_retire_cid, // ci_retire_cid
+    ietf_full_conn_ci_close, // ci_close
+    ietf_full_conn_ci_stateless_reset, // ci_stateless_reset
+    NULL, // ci_crypto_keysize
+    NULL, // ci_crypto_alg_keysize
+    NULL, // ci_crypto_ver
+    NULL, // ci_crypto_cipher
+    ietf_full_conn_ci_push_stream, // ci_push_stream
+    ietf_full_conn_ci_internal_error, // ci_internal_error
+    ietf_full_conn_ci_abort_error, // ci_abort_error
+    ietf_full_conn_ci_tls_alert, // ci_tls_alert
+    ietf_full_conn_ci_drain_time, // ci_drain_time
+    ietf_full_conn_ci_report_live, // ci_report_live
+    ietf_full_conn_ci_get_path, // ci_get_path
+    ietf_full_conn_ci_record_addrs, // ci_record_addrs
+    ietf_full_conn_ci_get_log_cid, // ci_get_log_cid
+    ietf_full_conn_ci_drop_crypto_streams, // ci_drop_crypto_streams
+    ietf_full_conn_ci_count_garbage, // ci_count_garbage
+    ietf_full_conn_ci_mtu_probe_acked, // ci_mtu_probe_acked
+    ietf_full_conn_ci_retx_timeout, // ci_retx_timeout
+    ietf_full_conn_ci_ack_snapshot, // ci_ack_snapshot
+    ietf_full_conn_ci_ack_rollback, // ci_ack_rollback
+    ietf_full_conn_ci_want_datagram_write, // ci_want_datagram_write
+    ietf_full_conn_ci_set_min_datagram_size, // ci_set_min_datagram_size
+    ietf_full_conn_ci_get_min_datagram_size, // ci_get_min_datagram_size
+    ietf_full_conn_ci_early_data_failed, // ci_early_data_failed
+#else
     IETF_FULL_CONN_FUNCS,
     .ci_next_packet_to_send =  ietf_full_conn_ci_next_packet_to_send,
     .ci_packet_not_sent     =  ietf_full_conn_ci_packet_not_sent,
@@ -8881,11 +9027,67 @@ static const struct conn_iface ietf_full_conn_iface = {
     .ci_get_stats           =  ietf_full_conn_ci_get_stats,
     .ci_log_stats           =  ietf_full_conn_ci_log_stats,
 #endif
+#endif
 };
 static const struct conn_iface *ietf_full_conn_iface_ptr =
                                                 &ietf_full_conn_iface;
 
 static const struct conn_iface ietf_full_conn_prehsk_iface = {
+#if 1 // hezhiwen
+    ietf_full_conn_ci_tick, // ci_tick
+    ietf_full_conn_ci_packet_in, // ci_packet_in
+    ietf_full_conn_ci_next_packet_to_send_pre_hsk, // ci_next_packet_to_send
+    ietf_full_conn_ci_packet_sent_pre_hsk, // ci_packet_sent
+    ietf_full_conn_ci_packet_not_sent_pre_hsk, // ci_packet_not_sent
+    NULL, // ci_packet_too_large
+    ietf_full_conn_ci_hsk_done, // ci_hsk_done
+    ietf_full_conn_ci_destroy, // ci_destroy
+    ietf_full_conn_ci_is_tickable, // ci_is_tickable
+    ietf_full_conn_ci_next_tick_time, // ci_next_tick_time
+    ietf_full_conn_ci_can_write_ack, // ci_can_write_ack
+    ietf_full_conn_ci_write_ack, // ci_write_ack
+#if LSQUIC_CONN_STATS
+    ietf_full_conn_ci_get_stats, // ci_get_stats
+    ietf_full_conn_ci_log_stats, // ci_log_stats
+#endif
+    ietf_full_conn_ci_client_call_on_new, // ci_client_call_on_new
+    ietf_full_conn_ci_status, // ci_status
+    ietf_full_conn_ci_n_avail_streams, // ci_n_avail_streams
+    ietf_full_conn_ci_n_pending_streams, // ci_n_pending_streams
+    ietf_full_conn_ci_cancel_pending_streams, // ci_cancel_pending_streams
+    ietf_full_conn_ci_going_away, // ci_going_away
+    ietf_full_conn_ci_is_push_enabled, // ci_is_push_enabled
+    NULL, // ci_get_stream_by_id
+    ietf_full_conn_ci_get_engine, // ci_get_engine
+    ietf_full_conn_ci_make_stream, // ci_make_stream
+    ietf_full_conn_ci_abort, // ci_abort
+    ietf_full_conn_ci_retire_cid, // ci_retire_cid
+    ietf_full_conn_ci_close, // ci_close
+    ietf_full_conn_ci_stateless_reset, // ci_stateless_reset
+    NULL, // ci_crypto_keysize
+    NULL, // ci_crypto_alg_keysize
+    NULL, // ci_crypto_ver
+    NULL, // ci_crypto_cipher
+    ietf_full_conn_ci_push_stream, // ci_push_stream
+    ietf_full_conn_ci_internal_error, // ci_internal_error
+    ietf_full_conn_ci_abort_error, // ci_abort_error
+    ietf_full_conn_ci_tls_alert, // ci_tls_alert
+    ietf_full_conn_ci_drain_time, // ci_drain_time
+    ietf_full_conn_ci_report_live, // ci_report_live
+    ietf_full_conn_ci_get_path, // ci_get_path
+    ietf_full_conn_ci_record_addrs, // ci_record_addrs
+    ietf_full_conn_ci_get_log_cid, // ci_get_log_cid
+    ietf_full_conn_ci_drop_crypto_streams, // ci_drop_crypto_streams
+    ietf_full_conn_ci_count_garbage, // ci_count_garbage
+    ietf_full_conn_ci_mtu_probe_acked, // ci_mtu_probe_acked
+    ietf_full_conn_ci_retx_timeout, // ci_retx_timeout
+    ietf_full_conn_ci_ack_snapshot, // ci_ack_snapshot
+    ietf_full_conn_ci_ack_rollback, // ci_ack_rollback
+    ietf_full_conn_ci_want_datagram_write, // ci_want_datagram_write
+    ietf_full_conn_ci_set_min_datagram_size, // ci_set_min_datagram_size
+    ietf_full_conn_ci_get_min_datagram_size, // ci_get_min_datagram_size
+    ietf_full_conn_ci_early_data_failed, // ci_early_data_failed
+#else
     IETF_FULL_CONN_FUNCS,
     .ci_next_packet_to_send =  ietf_full_conn_ci_next_packet_to_send_pre_hsk,
     .ci_packet_not_sent     =  ietf_full_conn_ci_packet_not_sent_pre_hsk,
@@ -8893,6 +9095,7 @@ static const struct conn_iface ietf_full_conn_prehsk_iface = {
 #if LSQUIC_CONN_STATS
     .ci_get_stats           =  ietf_full_conn_ci_get_stats,
     .ci_log_stats           =  ietf_full_conn_ci_log_stats,
+#endif
 #endif
 };
 static const struct conn_iface *ietf_full_conn_prehsk_iface_ptr =
@@ -9335,10 +9538,15 @@ on_priority_update_server (void *ctx, enum hq_frame_type frame_type,
         assert(stream);
     }
 
+#if 1 // hezhiwen
+    ehp.urgency = LSQUIC_DEF_HTTP_URGENCY;
+    ehp.incremental = LSQUIC_DEF_HTTP_INCREMENTAL;
+#else
     ehp = (struct lsquic_ext_http_prio) {
         .urgency     = LSQUIC_DEF_HTTP_URGENCY,
         .incremental = LSQUIC_DEF_HTTP_INCREMENTAL,
     };
+#endif
     if (pfv_sz)
     {
         switch (lsquic_http_parse_pfv(pfv, pfv_sz, NULL, &ehp,
@@ -9394,6 +9602,15 @@ on_frame_error (void *ctx, unsigned code, uint64_t frame_type)
 
 static const struct hcsi_callbacks hcsi_callbacks_server_27 =
 {
+#if 1 // hezhiwen
+    on_cancel_push_server, // on_cancel_push
+    on_max_push_id, // on_max_push_id
+    on_settings_frame, // on_settings_frame
+    on_setting, // on_setting
+    on_goaway_server_27, // on_goaway
+    on_frame_error, // on_frame_error
+    on_priority_update_server, // on_priority_update
+#else
     .on_cancel_push         = on_cancel_push_server,
     .on_max_push_id         = on_max_push_id,
     .on_settings_frame      = on_settings_frame,
@@ -9401,10 +9618,20 @@ static const struct hcsi_callbacks hcsi_callbacks_server_27 =
     .on_goaway              = on_goaway_server_27,
     .on_frame_error         = on_frame_error,
     .on_priority_update     = on_priority_update_server,
+#endif
 };
 
 static const struct hcsi_callbacks hcsi_callbacks_client_27 =
 {
+#if 1 // hezhiwen
+    on_cancel_push_client, // on_cancel_push
+    on_max_push_id_client, // on_max_push_id
+    on_settings_frame, // on_settings_frame
+    on_setting, // on_setting
+    on_goaway_client_27, // on_goaway
+    on_frame_error, // on_frame_error
+    on_priority_update_client, // on_priority_update
+#else
     .on_cancel_push         = on_cancel_push_client,
     .on_max_push_id         = on_max_push_id_client,
     .on_settings_frame      = on_settings_frame,
@@ -9412,11 +9639,21 @@ static const struct hcsi_callbacks hcsi_callbacks_client_27 =
     .on_goaway              = on_goaway_client_27,
     .on_frame_error         = on_frame_error,
     .on_priority_update     = on_priority_update_client,
+#endif
 };
 
 
 static const struct hcsi_callbacks hcsi_callbacks_server_29 =
 {
+#if 1 // hezhiwen
+    on_cancel_push_server,
+    on_max_push_id,
+    on_settings_frame,
+    on_setting,
+    on_goaway_server,
+    on_frame_error,
+    on_priority_update_server,
+#else
     .on_cancel_push         = on_cancel_push_server,
     .on_max_push_id         = on_max_push_id,
     .on_settings_frame      = on_settings_frame,
@@ -9424,10 +9661,20 @@ static const struct hcsi_callbacks hcsi_callbacks_server_29 =
     .on_goaway              = on_goaway_server,
     .on_frame_error         = on_frame_error,
     .on_priority_update     = on_priority_update_server,
+#endif
 };
 
 static const struct hcsi_callbacks hcsi_callbacks_client_29 =
 {
+#if 1 // hezhiwen
+    on_cancel_push_client,
+    on_max_push_id_client,
+    on_settings_frame,
+    on_setting,
+    on_goaway_client,
+    on_frame_error,
+    on_priority_update_client,
+#else
     .on_cancel_push         = on_cancel_push_client,
     .on_max_push_id         = on_max_push_id_client,
     .on_settings_frame      = on_settings_frame,
@@ -9435,6 +9682,7 @@ static const struct hcsi_callbacks hcsi_callbacks_client_29 =
     .on_goaway              = on_goaway_client,
     .on_frame_error         = on_frame_error,
     .on_priority_update     = on_priority_update_client,
+#endif
 };
 
 
@@ -9537,10 +9785,27 @@ hcsi_on_close (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 
 static const struct lsquic_stream_if hcsi_if =
 {
+#if 1 // hezhiwen
+    NULL, // on_new_conn
+    NULL, // on_goaway_received
+    NULL, // on_conn_closed
+    hcsi_on_new, // on_new_stream
+    hcsi_on_read, // on_read
+    hcsi_on_write, // on_write
+    hcsi_on_close, // on_close
+    NULL, // on_dg_write
+    NULL, // on_datagram
+    NULL, // on_hsk_done
+    NULL, // on_new_token
+    NULL, // on_sess_resume_info
+    NULL, // on_reset
+    NULL, // on_conncloseframe_received
+#else
     .on_new_stream  = hcsi_on_new,
     .on_read        = hcsi_on_read,
     .on_write       = hcsi_on_write,
     .on_close       = hcsi_on_close,
+#endif
 };
 
 
@@ -9646,7 +9911,11 @@ struct unicla_ctx
 
 
 static const char *const unicla_stat2str[] = {
+#if 1 // hezhiwen
+    "UC_MORE", "UC_ERROR", "UC_DONE",
+#else
     [UC_ERROR] = "UC_ERROR", [UC_MORE] = "UC_MORE", [UC_DONE] = "UC_DONE",
+#endif
 };
 
 
@@ -9678,8 +9947,13 @@ static void
 unicla_on_read (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 {
     struct ietf_full_conn *const conn = (void *) ctx;
+#if 1 // hezhiwen
+    struct unicla_ctx unicla_ctx = { &stream->sm_uni_type_state,
+                                     UC_MORE, };
+#else
     struct unicla_ctx unicla_ctx = { .state = &stream->sm_uni_type_state,
                                      .status = UC_MORE, };
+#endif
     ssize_t nr;
 
     nr = lsquic_stream_readf(stream, unicla_readf, &unicla_ctx);
@@ -9723,10 +9997,27 @@ unicla_on_close (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 
 static const struct lsquic_stream_if unicla_if =
 {
+#if 1 // hezhiwen
+    NULL, // on_new_conn
+    NULL, // on_goaway_received
+    NULL, // on_conn_closed
+    unicla_on_new, // on_new_stream
+    unicla_on_read, // on_read
+    unicla_on_write, // on_write
+    unicla_on_close, // on_close
+    NULL, // on_dg_write
+    NULL, // on_datagram
+    NULL, // on_hsk_done
+    NULL, // on_new_token
+    NULL, // on_sess_resume_info
+    NULL, // on_reset
+    NULL, // on_conncloseframe_received
+#else
     .on_new_stream  = unicla_on_new,
     .on_read        = unicla_on_read,
     .on_write       = unicla_on_write,
     .on_close       = unicla_on_close,
+#endif
 };
 
 

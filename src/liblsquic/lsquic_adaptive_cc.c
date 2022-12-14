@@ -196,6 +196,21 @@ adaptive_cc_cleanup (void *cong_ctl)
 
 const struct cong_ctl_if lsquic_cong_adaptive_if =
 {
+#if 1 // hezhiwen
+    adaptive_cc_init, // cci_init
+    adaptive_cc_reinit, // cci_reinit
+    adaptive_cc_ack, // cci_ack
+    adaptive_cc_loss, // cci_loss
+    adaptive_cc_begin_ack, // cci_begin_ack
+    adaptive_cc_end_ack, // cci_end_ack
+    adaptive_cc_sent, // cci_sent
+    adaptive_cc_lost, // cci_lost
+    adaptive_cc_timeout, // cci_timeout
+    adaptive_cc_was_quiet, // cci_was_quiet
+    adaptive_cc_get_cwnd, // cci_get_cwnd
+    adaptive_cc_pacing_rate, // cci_pacing_rate
+    adaptive_cc_cleanup, // cci_cleanup
+#else
     .cci_ack           = adaptive_cc_ack,
     .cci_begin_ack     = adaptive_cc_begin_ack,
     .cci_end_ack       = adaptive_cc_end_ack,
@@ -209,4 +224,5 @@ const struct cong_ctl_if lsquic_cong_adaptive_if =
     .cci_timeout       = adaptive_cc_timeout,
     .cci_sent          = adaptive_cc_sent,
     .cci_was_quiet     = adaptive_cc_was_quiet,
+#endif
 };

@@ -148,6 +148,9 @@ lsquic_prq_create (unsigned max_elems, unsigned max_conns,
     unsigned verneg_g_sz;
     ssize_t prst_g_sz;
     int len;
+#if 1 // hezhiwen
+    lsquic_cid_t cid = { 8, };
+#endif
 
     malo = lsquic_malo_create(sizeof(struct packet_req));
     if (!malo)
@@ -171,7 +174,9 @@ lsquic_prq_create (unsigned max_elems, unsigned max_conns,
         goto err2;
     }
 
+#if 0 // hezhiwen
     const lsquic_cid_t cid = { .len = 8, };
+#endif
     pf = select_pf_by_ver(LSQVER_043);
     len = lsquic_gquic_gen_ver_nego_pkt(prq->prq_verneg_g_buf,
                     sizeof(prq->prq_verneg_g_buf), &cid,
@@ -642,6 +647,61 @@ evanescent_conn_ci_record_addrs (struct lsquic_conn *lconn, void *peer_ctx,
 
 
 static const struct conn_iface evanescent_conn_iface = {
+#if 1 // hezhiwen
+    evanescent_conn_ci_tick, // ci_tick
+    evanescent_conn_ci_packet_in, // ci_packet_in
+    evanescent_conn_ci_next_packet_to_send, // ci_next_packet_to_send
+    evanescent_conn_ci_packet_sent, // ci_packet_sent
+    evanescent_conn_ci_packet_not_sent, // ci_packet_not_sent
+    NULL, // ci_packet_too_large
+    evanescent_conn_ci_hsk_done, // ci_hsk_done
+    evanescent_conn_ci_destroy, // ci_destroy
+    NULL, // ci_is_tickable
+    NULL, // ci_next_tick_time
+    NULL, // ci_can_write_ack
+    NULL, // ci_write_ack
+#if LSQUIC_CONN_STATS
+    NULL, // ci_get_stats
+    NULL, // ci_log_stats
+#endif
+    evanescent_conn_ci_client_call_on_new, // ci_client_call_on_new
+    NULL, // ci_status
+    NULL, // ci_n_avail_streams
+    NULL, // ci_n_pending_streams
+    NULL, // ci_cancel_pending_streams
+    NULL, // ci_going_away
+    NULL, // ci_is_push_enabled
+    NULL, // ci_get_stream_by_id
+    evanescent_conn_ci_get_engine, // ci_get_engine
+    NULL, // ci_make_stream
+    NULL, // ci_abort
+    NULL, // ci_retire_cid
+    NULL, // ci_close
+    NULL, // ci_stateless_reset
+    NULL, // ci_crypto_keysize
+    NULL, // ci_crypto_alg_keysize
+    NULL, // ci_crypto_ver
+    NULL, // ci_crypto_cipher
+    NULL, // ci_push_stream
+    NULL, // ci_internal_error
+    NULL, // ci_abort_error
+    NULL, // ci_tls_alert
+    NULL, // ci_drain_time
+    NULL, // ci_report_live
+    evanescent_conn_ci_get_path, // ci_get_path
+    evanescent_conn_ci_record_addrs, // ci_record_addrs
+    NULL, // ci_get_log_cid
+    NULL, // ci_drop_crypto_streams
+    NULL, // ci_count_garbage
+    NULL, // ci_mtu_probe_acked
+    NULL, // ci_retx_timeout
+    NULL, // ci_ack_snapshot
+    NULL, // ci_ack_rollback
+    NULL, // ci_want_datagram_write
+    NULL, // ci_set_min_datagram_size
+    NULL, // ci_get_min_datagram_size
+    NULL, // ci_early_data_failed
+#else
     .ci_client_call_on_new   =  evanescent_conn_ci_client_call_on_new,
     .ci_destroy              =  evanescent_conn_ci_destroy,
     .ci_get_engine           =  evanescent_conn_ci_get_engine,
@@ -653,13 +713,19 @@ static const struct conn_iface evanescent_conn_iface = {
     .ci_packet_sent          =  evanescent_conn_ci_packet_sent,
     .ci_record_addrs         =  evanescent_conn_ci_record_addrs,
     .ci_tick                 =  evanescent_conn_ci_tick,
+#endif
 };
 
 
 const char *const lsquic_preqt2str[] =
 {
+#if 1 // hezhiwen
+    "version negotiation",
+    "stateless reset",
+#else
     [PACKET_REQ_VERNEG] = "version negotiation",
     [PACKET_REQ_PUBRES] = "stateless reset",
+#endif
 };
 
 

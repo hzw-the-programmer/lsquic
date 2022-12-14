@@ -9,6 +9,10 @@
  * Replace "kDERCert"  to "der_cert3_"
  * 
  */
+#if 1 // hezhiwen
+#include <stdint.h>
+#endif
+
 #include "common_cert_set_3a.inc"
 #include "common_cert_set_3b.inc"
 

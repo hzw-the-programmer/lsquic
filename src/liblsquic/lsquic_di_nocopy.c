@@ -203,6 +203,9 @@ insert_frame (struct nocopy_data_in *ncdi, struct stream_frame *new_frame,
 {
     stream_frame_t *prev_frame, *next_frame;
     unsigned count;
+#if 1 // hezhiwen
+    int select;
+#endif
 
     if (read_offset > DF_END(new_frame))
     {
@@ -256,7 +259,11 @@ insert_frame (struct nocopy_data_in *ncdi, struct stream_frame *new_frame,
         next_frame = TAILQ_NEXT(next_frame, next_frame);
     }
 
+#if 1 // hezhiwen
+    select = !!prev_frame << 1 | !!next_frame;
+#else
     const int select = !!prev_frame << 1 | !!next_frame;
+#endif
     switch (select)
     {
     default:    /* No neighbors */
@@ -544,6 +551,18 @@ nocopy_di_readable_bytes (struct data_in *data_in, uint64_t read_offset)
 
 
 static const struct data_in_iface di_if_nocopy = {
+#if 1 // hezhiwen
+    nocopy_di_destroy, // di_destroy
+    nocopy_di_empty, // di_empty
+    nocopy_di_insert_frame, // di_insert_frame
+    nocopy_di_get_frame, // di_get_frame
+    nocopy_di_frame_done, // di_frame_done
+    nocopy_di_switch_impl, // di_switch_impl
+    nocopy_di_mem_used, // di_mem_used
+    nocopy_di_dump_state, // di_dump_state
+    nocopy_di_readable_bytes, // di_readable_bytes
+    1, // di_own_on_ok
+#else
     .di_destroy      = nocopy_di_destroy,
     .di_dump_state   = nocopy_di_dump_state,
     .di_empty        = nocopy_di_empty,
@@ -555,6 +574,7 @@ static const struct data_in_iface di_if_nocopy = {
     .di_readable_bytes
                      = nocopy_di_readable_bytes,
     .di_switch_impl  = nocopy_di_switch_impl,
+#endif
 };
 
 static const struct data_in_iface *di_if_nocopy_ptr = &di_if_nocopy;

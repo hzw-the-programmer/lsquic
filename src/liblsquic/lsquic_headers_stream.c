@@ -136,8 +136,13 @@ static void
 headers_on_write (lsquic_stream_t *stream, struct lsquic_stream_ctx *ctx)
 {
     struct headers_stream *hs = (struct headers_stream *) ctx;
+#if 1 // hezhiwen
+    int s = lsquic_frame_writer_flush(hs->hs_fw);
+    assert(lsquic_frame_writer_have_leftovers(hs->hs_fw));
+#else
     assert(lsquic_frame_writer_have_leftovers(hs->hs_fw));
     int s = lsquic_frame_writer_flush(hs->hs_fw);
+#endif
     if (0 == s)
     {
         LSQ_DEBUG("flushed");
@@ -165,10 +170,15 @@ lsquic_headers_stream_send_headers (struct headers_stream *hs,
     lsquic_stream_id_t stream_id, const struct lsquic_http_headers *headers,
     int eos, unsigned weight)
 {
+#if 0 // hezhiwen
     LSQ_DEBUG("received compressed headers to send");
+#endif
     int s;
     s = lsquic_frame_writer_write_headers(hs->hs_fw, stream_id, headers, eos,
                                                                         weight);
+#if 1 // hezhiwen
+    LSQ_DEBUG("received compressed headers to send");
+#endif
     if (0 == s)
     {
         lsquic_stream_wantwrite(hs->hs_stream,
@@ -185,8 +195,13 @@ lsquic_headers_stream_send_priority (struct headers_stream *hs,
         lsquic_stream_id_t stream_id, int exclusive,
         lsquic_stream_id_t dep_stream_id, unsigned weight)
 {
+#if 1 // hezhiwen
+    int s;
+    LSQ_DEBUG("received priority to send");
+#else
     LSQ_DEBUG("received priority to send");
     int s;
+#endif
     if (stream_id == dep_stream_id)
     {
         LSQ_INFO("stream cannot depend on itself"); /* RFC 7540, Sec. 5.3.1. */
@@ -246,10 +261,27 @@ lsquic_headers_stream_destroy (struct headers_stream *hs)
 
 static const struct lsquic_stream_if headers_stream_if =
 {
+#if 1 // hezhiwen
+    NULL, // on_new_conn
+    NULL, // on_goaway_received
+    NULL, // on_conn_closed
+    headers_on_new_stream, // on_new_stream
+    headers_on_read, // on_read
+    headers_on_write, // on_write
+    headers_on_close, // on_close
+    NULL, // on_dg_write
+    NULL, // on_datagram
+    NULL, // on_hsk_done
+    NULL, // on_new_token
+    NULL, // on_sess_resume_info
+    NULL, // on_reset
+    NULL, // on_conncloseframe_received
+#else
     .on_new_stream = headers_on_new_stream,
     .on_read       = headers_on_read,
     .on_write      = headers_on_write,
     .on_close      = headers_on_close,
+#endif
 };
 
 
@@ -415,11 +447,19 @@ lsquic_headers_stream_get_stream (const struct headers_stream *hs)
 
 
 static const struct frame_reader_callbacks frame_callbacks = {
+#if 1 // hezhiwen
+    headers_on_incoming_headers, // frc_on_headers
+    headers_on_push_promise, // frc_on_push_promise
+    headers_on_settings, // frc_on_settings
+    headers_on_priority, // frc_on_priority
+    headers_on_error, // frc_on_error
+#else
     .frc_on_headers      = headers_on_incoming_headers,
     .frc_on_push_promise = headers_on_push_promise,
     .frc_on_error        = headers_on_error,
     .frc_on_settings     = headers_on_settings,
     .frc_on_priority     = headers_on_priority,
+#endif
 };
 
 static const struct frame_reader_callbacks *frame_callbacks_ptr = &frame_callbacks;

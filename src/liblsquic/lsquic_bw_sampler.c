@@ -135,12 +135,19 @@ lsquic_bw_sampler_packet_sent (struct bw_sampler *sampler,
         return;
     }
 
+#if 1 // hezhiwen
+    state->bwps_send_state.total_bytes_sent = sampler->bws_total_sent;
+    state->bwps_send_state.total_bytes_acked = sampler->bws_total_acked;
+    state->bwps_send_state.total_bytes_lost = sampler->bws_total_lost;
+    state->bwps_send_state.is_app_limited = !!(sampler->bws_flags & BWS_APP_LIMITED);
+#else
     state->bwps_send_state = (struct bwps_send_state) {
         .total_bytes_sent   = sampler->bws_total_sent,
         .total_bytes_acked  = sampler->bws_total_acked,
         .total_bytes_lost   = sampler->bws_total_lost,
         .is_app_limited     = !!(sampler->bws_flags & BWS_APP_LIMITED),
     };
+#endif
     state->bwps_sent_at_last_ack = sampler->bws_last_acked_total_sent;
     state->bwps_last_ack_sent_time = sampler->bws_last_acked_sent_time;
     state->bwps_last_ack_ack_time = sampler->bws_last_acked_packet_time;

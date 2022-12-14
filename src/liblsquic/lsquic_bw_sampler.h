@@ -16,16 +16,45 @@ struct bandwidth
     uint64_t            value;  /* Bits per second */
 };
 
+#if 1 // hezhiwen
+static struct bandwidth BW_INFINITE() {
+    struct bandwidth bw = { UINT64_MAX, };
+    return bw;
+}
+
+static struct bandwidth BW_ZERO() {
+    struct bandwidth bw = { 0, };
+    return bw;
+}
+
+static struct bandwidth BW_FROM_BYTES_AND_DELTA(uint64_t bytes_, lsquic_time_t usecs_) {
+    struct bandwidth bw = { (bytes_) * 8 * 1000000 / (usecs_), };
+    return bw;
+}
+#else
 #define BW_INFINITE() ((struct bandwidth) { .value = UINT64_MAX, })
 #define BW_ZERO() ((struct bandwidth) { .value = 0, })
 #define BW_FROM_BYTES_AND_DELTA(bytes_, usecs_) \
     ((struct bandwidth) { .value = (bytes_) * 8 * 1000000 / (usecs_), })
+#endif
 #define BW_IS_ZERO(bw_) ((bw_)->value == 0)
 #define BW_TO_BYTES_PER_SEC(bw_) ((bw_)->value / 8)
 #define BW_VALUE(bw_) (+(bw_)->value)
+#if 1 // hezhiwen
+static struct bandwidth BW_TIMES(struct bandwidth *bw_, float factor_) {
+    struct bandwidth bw = { BW_VALUE(bw_) * factor_, };
+    return bw;
+}
+
+static struct bandwidth BW(uint64_t initial_value_) {
+    struct bandwidth bw = { initial_value_, };
+    return bw;
+}
+#else
 #define BW_TIMES(bw_, factor_) \
                 ((struct bandwidth) { .value = BW_VALUE(bw_) * (factor_), })
 #define BW(initial_value_) ((struct bandwidth) { .value = (initial_value_) })
+#endif
 
 struct bw_sampler
 {

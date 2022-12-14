@@ -150,6 +150,22 @@ struct transport_params
 
 #define TP_INITIALIZER() (struct transport_params) { TP_DEFAULT_VALUES }
 
+#if 1 // hezhiwen
+#define TP_DEFAULT_VALUES_EX(tp)                                                        \
+    tp.tp_set = ((1 << (MAX_NUM_WITH_DEF_TPI + 1)) - 1),                                \
+    tp.tp_active_connection_id_limit        =  TP_DEF_ACTIVE_CONNECTION_ID_LIMIT,       \
+    tp.tp_max_idle_timeout                  =  TP_DEF_MAX_IDLE_TIMEOUT,                 \
+    tp.tp_max_ack_delay                     =  TP_DEF_MAX_ACK_DELAY,                    \
+    tp.tp_max_udp_payload_size              =  TP_DEF_MAX_UDP_PAYLOAD_SIZE,             \
+    tp.tp_ack_delay_exponent                =  TP_DEF_ACK_DELAY_EXP,                    \
+    tp.tp_init_max_streams_bidi             =  TP_DEF_INIT_MAX_STREAMS_BIDI,            \
+    tp.tp_init_max_streams_uni              =  TP_DEF_INIT_MAX_STREAMS_UNI,             \
+    tp.tp_init_max_data                     =  TP_DEF_INIT_MAX_DATA,                    \
+    tp.tp_init_max_stream_data_bidi_local   =  TP_DEF_INIT_MAX_STREAM_DATA_BIDI_LOCAL,  \
+    tp.tp_init_max_stream_data_bidi_remote  =  TP_DEF_INIT_MAX_STREAM_DATA_BIDI_REMOTE, \
+    tp.tp_init_max_stream_data_uni          =  TP_DEF_INIT_MAX_STREAM_DATA_UNI
+#endif
+
 int
 lsquic_tp_encode (const struct transport_params *, int is_server,
                   unsigned char *const buf, size_t bufsz);

@@ -38,10 +38,17 @@
 /* [draft-ietf-quic-transport-24] Section-17.2 */
 static const enum header_type bits2ht[4] =
 {
+#if 1 // hezhiwen
+    HETY_INITIAL,
+    HETY_0RTT,
+    HETY_HANDSHAKE,
+    HETY_RETRY,
+#else
     [0] = HETY_INITIAL,
     [1] = HETY_0RTT,
     [2] = HETY_HANDSHAKE,
     [3] = HETY_RETRY,
+#endif
 };
 
 
@@ -320,10 +327,19 @@ gquic_Q050_packout_header_size_long_by_flags (const struct lsquic_conn *lconn,
 
 /* [draft-ietf-quic-transport-17] Section-17.2 */
 static const unsigned char header_type_to_bin[] = {
+#if 1 // hezhiwen
+    0, // HETY_NOT_SET
+    0, // HETY_VERNEG
+    0x0, // HETY_INITIAL
+    0x3, // HETY_RETRY
+    0x2, // HETY_HANDSHAKE
+    0x1, // HETY_0RTT
+#else
     [HETY_INITIAL]      = 0x0,
     [HETY_0RTT]         = 0x1,
     [HETY_HANDSHAKE]    = 0x2,
     [HETY_RETRY]        = 0x3,
+#endif
 };
 
 
@@ -508,6 +524,264 @@ gquic_Q050_parse_packet_in_finish (struct lsquic_packet_in *packet_in,
 /* Same as Q046 plus CRYPTO frame at slot 8 */
 static const enum quic_frame_type byte2frame_type_Q050[0x100] =
 {
+#if 1 // hezhiwen
+    QUIC_FRAME_PADDING,
+    QUIC_FRAME_RST_STREAM,
+    QUIC_FRAME_CONNECTION_CLOSE,
+    QUIC_FRAME_GOAWAY,
+    QUIC_FRAME_WINDOW_UPDATE,
+    QUIC_FRAME_BLOCKED,
+    QUIC_FRAME_STOP_WAITING,
+    QUIC_FRAME_PING,
+    QUIC_FRAME_CRYPTO,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_INVALID,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_ACK,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+    QUIC_FRAME_STREAM,
+#else
     [0x00] = QUIC_FRAME_PADDING,
     [0x01] = QUIC_FRAME_RST_STREAM,
     [0x02] = QUIC_FRAME_CONNECTION_CLOSE,
@@ -764,6 +1038,7 @@ static const enum quic_frame_type byte2frame_type_Q050[0x100] =
     [0xFD] = QUIC_FRAME_STREAM,
     [0xFE] = QUIC_FRAME_STREAM,
     [0xFF] = QUIC_FRAME_STREAM,
+#endif
 };
 
 
@@ -844,6 +1119,91 @@ gquic_Q050_parse_handshake_done_frame (const unsigned char *buf, size_t buf_len)
 
 const struct parse_funcs lsquic_parse_funcs_gquic_Q050 =
 {
+#if 1 // hezhiwen
+    gquic_Q050_gen_reg_pkt_header, // pf_gen_reg_pkt_header
+    gquic_Q050_parse_packet_in_finish, // pf_parse_packet_in_finish
+    gquic_Q050_parse_frame_type, // pf_parse_frame_type
+    lsquic_gquic_be_gen_stream_frame, // pf_gen_stream_frame
+    gquic_Q050_gen_crypto_frame, // pf_gen_crypto_frame
+    lsquic_gquic_be_parse_stream_frame, // pf_parse_stream_frame
+    gquic_Q050_parse_crypto_frame, // pf_parse_crypto_frame
+    lsquic_gquic_be_dec_stream_frame_size, // pf_dec_stream_frame_size
+    lsquic_gquic_be_parse_ack_frame, // pf_parse_ack_frame
+    lsquic_gquic_be_gen_ack_frame, // pf_gen_ack_frame
+    lsquic_gquic_be_gen_stop_waiting_frame, // pf_gen_stop_waiting_frame
+    lsquic_gquic_be_parse_stop_waiting_frame, // pf_parse_stop_waiting_frame
+    lsquic_gquic_be_skip_stop_waiting_frame, // pf_skip_stop_waiting_frame
+    lsquic_gquic_be_gen_window_update_frame, // pf_gen_window_update_frame
+    lsquic_gquic_be_parse_window_update_frame, // pf_parse_window_update_frame
+    lsquic_gquic_be_gen_blocked_frame, // pf_gen_blocked_frame
+    lsquic_gquic_be_parse_blocked_frame, // pf_parse_blocked_frame
+    NULL, // pf_blocked_frame_size
+    NULL, // pf_rst_frame_size
+    lsquic_gquic_be_gen_rst_frame, // pf_gen_rst_frame
+    lsquic_gquic_be_parse_rst_frame, // pf_parse_rst_frame
+    NULL, // pf_parse_stop_sending_frame
+    NULL, // pf_stop_sending_frame_size
+    NULL, // pf_gen_stop_sending_frame
+    lsquic_gquic_be_connect_close_frame_size, // pf_connect_close_frame_size
+    lsquic_gquic_be_gen_connect_close_frame, // pf_gen_connect_close_frame
+    lsquic_gquic_be_parse_connect_close_frame, // pf_parse_connect_close_frame
+    lsquic_gquic_be_gen_goaway_frame, // pf_gen_goaway_frame
+    lsquic_gquic_be_parse_goaway_frame, // pf_parse_goaway_frame
+    lsquic_gquic_be_gen_ping_frame, // pf_gen_ping_frame
+    NULL, // pf_parse_path_chal_frame
+    NULL, // pf_parse_path_resp_frame
+#if 1 // ndef NDEBUG
+    lsquic_gquic_be_write_float_time16, // pf_write_float_time16
+    lsquic_gquic_be_read_float_time16, // pf_read_float_time16
+#endif
+    gquic_Q050_generate_simple_prst, // pf_generate_simple_prst
+    lsquic_calc_stream_frame_header_sz_gquic, // pf_calc_stream_frame_header_sz
+    gquic_Q050_calc_crypto_frame_header_sz, // pf_calc_crypto_frame_header_sz
+    lsquic_turn_on_fin_Q035_thru_Q046, // pf_turn_on_fin
+    gquic_Q050_packout_size, // pf_packout_size
+    gquic_Q050_packout_max_header_size, // pf_packout_max_header_size
+    gquic_Q050_calc_packno_bits, // pf_calc_packno_bits
+    gquic_Q050_packno_bits2len, // pf_packno_bits2len
+    NULL, // pf_parse_max_data
+    NULL, // pf_gen_max_data_frame
+    NULL, // pf_max_data_frame_size
+    NULL, // pf_parse_new_conn_id
+    NULL, // pf_stream_blocked_frame_size
+    NULL, // pf_gen_stream_blocked_frame
+    NULL, // pf_parse_stream_blocked_frame
+    NULL, // pf_max_stream_data_frame_size
+    NULL, // pf_gen_max_stream_data_frame
+    NULL, // pf_parse_max_stream_data_frame
+    NULL, // pf_parse_new_token_frame
+    NULL, // pf_new_connection_id_frame_size
+    NULL, // pf_gen_new_connection_id_frame
+    NULL, // pf_retire_cid_frame_size
+    NULL, // pf_gen_retire_cid_frame
+    NULL, // pf_parse_retire_cid_frame
+    NULL, // pf_new_token_frame_size
+    NULL, // pf_gen_new_token_frame
+    NULL, // pf_gen_streams_blocked_frame
+    NULL, // pf_parse_streams_blocked_frame
+    NULL, // pf_streams_blocked_frame_size
+    NULL, // pf_gen_max_streams_frame
+    NULL, // pf_parse_max_streams_frame
+    NULL, // pf_max_streams_frame_size
+    NULL, // pf_path_chal_frame_size
+    NULL, // pf_gen_path_chal_frame
+    NULL, // pf_path_resp_frame_size
+    NULL, // pf_gen_path_resp_frame
+    gquic_Q050_gen_handshake_done_frame, // pf_gen_handshake_done_frame
+    gquic_Q050_parse_handshake_done_frame, // pf_parse_handshake_done_frame
+    gquic_Q050_handshake_done_frame_size, // pf_handshake_done_frame_size
+    NULL, // pf_gen_ack_frequency_frame
+    NULL, // pf_parse_ack_frequency_frame
+    NULL, // pf_ack_frequency_frame_size
+    NULL, // pf_gen_timestamp_frame
+    NULL, // pf_parse_timestamp_frame
+    NULL, // pf_parse_datagram_frame
+    NULL, // pf_gen_datagram_frame
+    NULL, // pf_datagram_frame_size
+#else
     .pf_gen_reg_pkt_header            =  gquic_Q050_gen_reg_pkt_header,
     .pf_parse_packet_in_finish        =  gquic_Q050_parse_packet_in_finish,
     .pf_gen_stream_frame              =  lsquic_gquic_be_gen_stream_frame,
@@ -884,4 +1244,5 @@ const struct parse_funcs lsquic_parse_funcs_gquic_Q050 =
     .pf_gen_handshake_done_frame      =  gquic_Q050_gen_handshake_done_frame,
     .pf_parse_handshake_done_frame    =  gquic_Q050_parse_handshake_done_frame,
     .pf_handshake_done_frame_size     =  gquic_Q050_handshake_done_frame_size,
+#endif
 };

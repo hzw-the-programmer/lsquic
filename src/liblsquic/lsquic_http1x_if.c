@@ -183,6 +183,54 @@ add_pseudo_header (struct header_writer_ctx *hwc, struct lsxpack_header *xhdr)
 static const char *
 code_str_to_reason (const char code_str[HTTP_CODE_LEN])
 {
+#if 1 // hezhiwen
+    long code;
+    char code_buf[HTTP_CODE_LEN + 1];
+    /* RFC 7231, Section 6: */
+    char* http_reason_phrases[405+1] = {NULL};
+    http_reason_phrases[100 - 100] = "Continue";
+    http_reason_phrases[101 - 100] = "Switching Protocols";
+    http_reason_phrases[200 - 100] = "OK";
+    http_reason_phrases[201 - 100] = "Created";
+    http_reason_phrases[202 - 100] = "Accepted";
+    http_reason_phrases[203 - 100] = "Non-Authoritative Information";
+    http_reason_phrases[204 - 100] = "No Content";
+    http_reason_phrases[205 - 100] = "Reset Content";
+    http_reason_phrases[206 - 100] = "Partial Content";
+    http_reason_phrases[300 - 100] = "Multiple Choices";
+    http_reason_phrases[301 - 100] = "Moved Permanently";
+    http_reason_phrases[302 - 100] = "Found";
+    http_reason_phrases[303 - 100] = "See Other";
+    http_reason_phrases[304 - 100] = "Not Modified";
+    http_reason_phrases[305 - 100] = "Use Proxy";
+    http_reason_phrases[307 - 100] = "Temporary Redirect";
+    http_reason_phrases[400 - 100] = "Bad Request";
+    http_reason_phrases[401 - 100] = "Unauthorized";
+    http_reason_phrases[402 - 100] = "Payment Required";
+    http_reason_phrases[403 - 100] = "Forbidden";
+    http_reason_phrases[404 - 100] = "Not Found";
+    http_reason_phrases[405 - 100] = "Method Not Allowed";
+    http_reason_phrases[405 - 100] = "Method Not Allowed";
+    http_reason_phrases[406 - 100] = "Not Acceptable";
+    http_reason_phrases[407 - 100] = "Proxy Authentication Required";
+    http_reason_phrases[408 - 100] = "Request Timeout";
+    http_reason_phrases[409 - 100] = "Conflict";
+    http_reason_phrases[410 - 100] = "Gone";
+    http_reason_phrases[411 - 100] = "Length Required";
+    http_reason_phrases[412 - 100] = "Precondition Failed";
+    http_reason_phrases[413 - 100] = "Payload Too Large";
+    http_reason_phrases[414 - 100] = "URI Too Long";
+    http_reason_phrases[415 - 100] = "Unsupported Media Type";
+    http_reason_phrases[416 - 100] = "Range Not Satisfiable";
+    http_reason_phrases[417 - 100] = "Expectation Failed";
+    http_reason_phrases[426 - 100] = "Upgrade Required";
+    http_reason_phrases[500 - 100] = "Internal Server Error";
+    http_reason_phrases[501 - 100] = "Not Implemented";
+    http_reason_phrases[502 - 100] = "Bad Gateway";
+    http_reason_phrases[503 - 100] = "Service Unavailable";
+    http_reason_phrases[504 - 100] = "Gateway Timeout";
+    http_reason_phrases[505 - 100] = "HTTP Version Not Supported";
+#else
     /* RFC 7231, Section 6: */
     static const char *const http_reason_phrases[] =
     {
@@ -233,6 +281,7 @@ code_str_to_reason (const char code_str[HTTP_CODE_LEN])
 
     long code;
     char code_buf[HTTP_CODE_LEN + 1];
+#endif
 
     memcpy(code_buf, code_str, HTTP_CODE_LEN);
     code_buf[HTTP_CODE_LEN] = '\0';
@@ -248,6 +297,11 @@ code_str_to_reason (const char code_str[HTTP_CODE_LEN])
 static int
 convert_response_pseudo_headers (struct header_writer_ctx *hwc)
 {
+#if 1 // hezhiwen
+    const char *code_str, *reason;
+    int code_len;
+#endif
+
     if ((hwc->pseh_mask & REQUIRED_SERVER_PSEH) != REQUIRED_SERVER_PSEH)
     {
         LSQ_INFO("not all response pseudo-headers are specified");
@@ -259,8 +313,10 @@ convert_response_pseudo_headers (struct header_writer_ctx *hwc)
         return 1;
     }
 
+#if 0 // hezhiwen
     const char *code_str, *reason;
     int code_len;
+#endif
 
     code_str = HWC_PSEH_VAL(hwc, PSEH_STATUS);
     code_len = HWC_PSEH_LEN(hwc, PSEH_STATUS);
@@ -604,10 +660,18 @@ h1h_discard_header_set (void *hset)
 
 static const struct lsquic_hset_if http1x_if =
 {
+#if 1 // hezhiwen
+    h1h_create_header_set, // hsi_create_header_set
+    h1h_prepare_decode, // hsi_prepare_decode
+    h1h_process_header, // hsi_process_header
+    h1h_discard_header_set, // hsi_discard_header_set
+    0, // hsi_flags
+#else
     .hsi_create_header_set  = h1h_create_header_set,
     .hsi_prepare_decode     = h1h_prepare_decode,
     .hsi_process_header     = h1h_process_header,
     .hsi_discard_header_set = h1h_discard_header_set,
+#endif
 };
 
 const struct lsquic_hset_if *const lsquic_http1x_if = &http1x_if;

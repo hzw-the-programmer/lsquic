@@ -65,7 +65,11 @@ struct lsxpack_header
 typedef struct lsxpack_header lsxpack_header_t;
 
 
+#if 1 // hezhiwen
+static void
+#else
 static inline void
+#endif
 lsxpack_header_set_idx(lsxpack_header_t *hdr, int hpack_idx,
                        const char *val, size_t val_len)
 {

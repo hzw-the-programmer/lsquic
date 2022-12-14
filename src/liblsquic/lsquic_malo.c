@@ -122,6 +122,10 @@ lsquic_malo_create (size_t obj_size)
 #if LSQUIC_USE_POOLS
     int pow, n_slots;
     unsigned nbits;
+#if 1 // hezhiwen
+    struct malo *malo;
+    struct malo_page *page;
+#endif
 
     obj_size = (obj_size + 7) & -8;
     nbits = size_in_bits(obj_size);
@@ -136,7 +140,9 @@ lsquic_malo_create (size_t obj_size)
     pow = obj_size <= (1 << MALO_MIN_NBITS)
           || (float) obj_size / (1 << nbits) > ROUNDUP_THRESH;
 
+#if 0 // hezhiwen
     struct malo *malo;
+#endif
     if (0 != posix_memalign((void **) &malo, 0x1000, 0x1000))
         return NULL;
 
@@ -152,7 +158,11 @@ lsquic_malo_create (size_t obj_size)
         n_slots =   sizeof(*malo) / obj_size
                 + ((sizeof(*malo) % obj_size) > 0);
 
+#if 1 // hezhiwen
+    page = &malo->page_header;
+#else
     struct malo_page *const page = &malo->page_header;
+#endif
     SLIST_INSERT_HEAD(&malo->all_pages, page, next_page);
     LIST_INSERT_HEAD(&malo->free_pages, page, next_free_page);
     page->malo = malo;
@@ -218,15 +228,27 @@ void *
 lsquic_malo_get (struct malo *malo)
 {
 #if LSQUIC_USE_POOLS
+#if 1 // hezhiwen
+    struct malo_page *page;
+    unsigned slot;
+#endif
     fiu_do_on("malo/get", FAIL_NOMEM);
+#if 1 // hezhiwen
+    page = LIST_FIRST(&malo->free_pages);
+#else
     struct malo_page *page = LIST_FIRST(&malo->free_pages);
+#endif
     if (!page)
     {
         page = allocate_page(malo);
         if (!page)
             return NULL;
     }
+#if 1 // hezhiwen
+    slot = find_free_slot(page->slots);
+#else
     unsigned slot = find_free_slot(page->slots);
+#endif
     page->slots |= (1ULL << slot);
     if (page->full_slot_mask == page->slots)
         LIST_REMOVE(page, next_free_page);

@@ -676,6 +676,18 @@ hash_di_readable_bytes (struct data_in *data_in, uint64_t read_offset)
 
 
 static const struct data_in_iface di_if_hash = {
+#if 1 // hezhiwen
+    hash_di_destroy, // di_destroy
+    hash_di_empty, // di_empty
+    hash_di_insert_frame, // di_insert_frame
+    hash_di_get_frame, // di_get_frame
+    hash_di_frame_done, // di_frame_done
+    hash_di_switch_impl, // di_switch_impl
+    hash_di_mem_used, // di_mem_used
+    hash_di_dump_state, // di_dump_state
+    hash_di_readable_bytes, // di_readable_bytes
+    0, // di_own_on_ok
+#else
     .di_destroy      = hash_di_destroy,
     .di_dump_state   = hash_di_dump_state,
     .di_empty        = hash_di_empty,
@@ -687,6 +699,7 @@ static const struct data_in_iface di_if_hash = {
     .di_readable_bytes
                      = hash_di_readable_bytes,
     .di_switch_impl  = hash_di_switch_impl,
+#endif
 };
 
 static const struct data_in_iface *di_if_hash_ptr = &di_if_hash;

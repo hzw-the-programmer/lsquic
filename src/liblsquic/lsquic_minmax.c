@@ -113,7 +113,11 @@ minmax_subwin_update (struct minmax *minmax, const struct minmax_sample *sample)
 void
 lsquic_minmax_update_max (struct minmax *minmax, uint64_t now, uint64_t meas)
 {
+#if 1
+    struct minmax_sample sample = { now, meas };
+#else
     struct minmax_sample sample = { .time = now, .value = meas };
+#endif
 
     if (minmax->samples[0].value == 0                                       /* uninitialized */
             || sample.value >= minmax->samples[0].value                     /* found new max? */
@@ -136,7 +140,11 @@ lsquic_minmax_update_max (struct minmax *minmax, uint64_t now, uint64_t meas)
 void
 lsquic_minmax_update_min (struct minmax *minmax, uint64_t now, uint64_t meas)
 {
+#if 1
+    struct minmax_sample sample = { now, meas };
+#else
     struct minmax_sample sample = { .time = now, .value = meas };
+#endif
 
     if (minmax->samples[0].value == 0                                       /* uninitialized */
             || sample.value <= minmax->samples[0].value                     /* found new min? */

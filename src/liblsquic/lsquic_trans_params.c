@@ -70,6 +70,34 @@ tpi_val_2_enum (uint64_t tpi_val)
 
 static const unsigned enum_2_tpi_val[LAST_TPI + 1] =
 {
+#if 1
+    0x1, // TPI_MAX_IDLE_TIMEOUT
+    0x3, // TPI_MAX_UDP_PAYLOAD_SIZE
+    0x4, // TPI_INIT_MAX_DATA
+    0x5, // TPI_INIT_MAX_STREAM_DATA_BIDI_LOCAL
+    0x6, // TPI_INIT_MAX_STREAM_DATA_BIDI_REMOTE
+    0x7, // TPI_INIT_MAX_STREAM_DATA_UNI
+    0x8, // TPI_INIT_MAX_STREAMS_BIDI
+    0x9, // TPI_INIT_MAX_STREAMS_UNI
+    0xA, // TPI_ACK_DELAY_EXPONENT
+    0xB, // TPI_MAX_ACK_DELAY
+    0xE, // TPI_ACTIVE_CONNECTION_ID_LIMIT
+    0xDE1A, // TPI_MIN_ACK_DELAY
+    0xFF02DE1A, // TPI_MIN_ACK_DELAY_02
+    0x7158, // TPI_TIMESTAMPS
+    0x20, // TPI_MAX_DATAGRAM_FRAME_SIZE
+    0x1057, // TPI_LOSS_BITS
+    0x2AB2, // TPI_GREASE_QUIC_BIT
+    0xC, // TPI_DISABLE_ACTIVE_MIGRATION
+    0xD, // TPI_PREFERRED_ADDRESS
+    0x0, // TPI_ORIGINAL_DEST_CID
+    0xF, // TPI_INITIAL_SOURCE_CID
+    0x10, // TPI_RETRY_SOURCE_CID
+#if LSQUIC_TEST_QUANTUM_READINESS
+    0xC37, // TPI_QUANTUM_READINESS
+#endif
+    0x2, // TPI_STATELESS_RESET_TOKEN
+#else
     [TPI_ORIGINAL_DEST_CID]                 =  0x0,
     [TPI_MAX_IDLE_TIMEOUT]                  =  0x1,
     [TPI_STATELESS_RESET_TOKEN]             =  0x2,
@@ -96,11 +124,40 @@ static const unsigned enum_2_tpi_val[LAST_TPI + 1] =
     [TPI_MIN_ACK_DELAY_02]                  =  0xFF02DE1A,
     [TPI_TIMESTAMPS]                        =  0x7158,
     [TPI_GREASE_QUIC_BIT]                   =  0x2AB2,
+#endif
 };
 
 
 const char * const lsquic_tpi2str[LAST_TPI + 1] =
 {
+#if 1
+    "max_idle_timeout", // TPI_MAX_IDLE_TIMEOUT
+    "max_udp_payload_size", // TPI_MAX_UDP_PAYLOAD_SIZE
+    "init_max_data", // TPI_INIT_MAX_DATA
+    "init_max_stream_data_bidi_local", // TPI_INIT_MAX_STREAM_DATA_BIDI_LOCAL
+    "init_max_stream_data_bidi_remote", // TPI_INIT_MAX_STREAM_DATA_BIDI_REMOTE
+    "init_max_stream_data_uni", // TPI_INIT_MAX_STREAM_DATA_UNI
+    "init_max_streams_bidi", // TPI_INIT_MAX_STREAMS_BIDI
+    "init_max_streams_uni", // TPI_INIT_MAX_STREAMS_UNI
+    "ack_delay_exponent", // TPI_ACK_DELAY_EXPONENT
+    "max_ack_delay", // TPI_MAX_ACK_DELAY
+    "active_connection_id_limit", // TPI_ACTIVE_CONNECTION_ID_LIMIT
+    "min_ack_delay", // TPI_MIN_ACK_DELAY
+    "min_ack_delay_02", // TPI_MIN_ACK_DELAY_02
+    "timestamps", // TPI_TIMESTAMPS
+    "max_datagram_frame_size", // TPI_MAX_DATAGRAM_FRAME_SIZE
+    "loss_bits", // TPI_LOSS_BITS
+    "grease_quic_bit", // TPI_GREASE_QUIC_BIT
+    "disable_active_migration", // TPI_DISABLE_ACTIVE_MIGRATION
+    "preferred_address", // TPI_PREFERRED_ADDRESS
+    "original_destination_connection_id", // TPI_ORIGINAL_DEST_CID
+    "initial_source_connection_id", // TPI_INITIAL_SOURCE_CID
+    "retry_source_connection_id", // TPI_RETRY_SOURCE_CID
+#if LSQUIC_TEST_QUANTUM_READINESS
+    "quantum_readiness", // TPI_QUANTUM_READINESS
+#endif
+    "stateless_reset_token", // TPI_STATELESS_RESET_TOKEN
+#else
     [TPI_ORIGINAL_DEST_CID]                 =  "original_destination_connection_id",
     [TPI_MAX_IDLE_TIMEOUT]                  =  "max_idle_timeout",
     [TPI_STATELESS_RESET_TOKEN]             =  "stateless_reset_token",
@@ -127,12 +184,26 @@ const char * const lsquic_tpi2str[LAST_TPI + 1] =
     [TPI_MIN_ACK_DELAY_02]                  =  "min_ack_delay_02",
     [TPI_TIMESTAMPS]                        =  "timestamps",
     [TPI_GREASE_QUIC_BIT]                   =  "grease_quic_bit",
+#endif
 };
 #define tpi2str lsquic_tpi2str
 
 
 static const uint64_t def_vals[MAX_NUM_WITH_DEF_TPI + 1] =
 {
+#if 1
+    TP_DEF_MAX_IDLE_TIMEOUT, // TPI_MAX_IDLE_TIMEOUT
+    TP_DEF_MAX_UDP_PAYLOAD_SIZE, // TPI_MAX_UDP_PAYLOAD_SIZE
+    TP_DEF_INIT_MAX_DATA, // TPI_INIT_MAX_DATA
+    TP_DEF_INIT_MAX_STREAM_DATA_BIDI_LOCAL, // TPI_INIT_MAX_STREAM_DATA_BIDI_LOCAL
+    TP_DEF_INIT_MAX_STREAM_DATA_BIDI_REMOTE, // TPI_INIT_MAX_STREAM_DATA_BIDI_REMOTE
+    TP_DEF_INIT_MAX_STREAM_DATA_UNI, // TPI_INIT_MAX_STREAM_DATA_UNI
+    TP_DEF_INIT_MAX_STREAMS_BIDI, // TPI_INIT_MAX_STREAMS_BIDI
+    TP_DEF_INIT_MAX_STREAMS_UNI, // TPI_INIT_MAX_STREAMS_UNI
+    TP_DEF_ACK_DELAY_EXP, // TPI_ACK_DELAY_EXPONENT
+    TP_DEF_MAX_ACK_DELAY, // TPI_MAX_ACK_DELAY
+    TP_DEF_ACTIVE_CONNECTION_ID_LIMIT, // TPI_ACTIVE_CONNECTION_ID_LIMIT
+#else
     [TPI_MAX_UDP_PAYLOAD_SIZE]              =  TP_DEF_MAX_UDP_PAYLOAD_SIZE,
     [TPI_ACK_DELAY_EXPONENT]                =  TP_DEF_ACK_DELAY_EXP,
     [TPI_INIT_MAX_STREAMS_UNI]              =  TP_DEF_INIT_MAX_STREAMS_UNI,
@@ -144,6 +215,7 @@ static const uint64_t def_vals[MAX_NUM_WITH_DEF_TPI + 1] =
     [TPI_MAX_IDLE_TIMEOUT]                  =  TP_DEF_MAX_IDLE_TIMEOUT,
     [TPI_MAX_ACK_DELAY]                     =  TP_DEF_MAX_ACK_DELAY,
     [TPI_ACTIVE_CONNECTION_ID_LIMIT]        =  TP_DEF_ACTIVE_CONNECTION_ID_LIMIT,
+#endif
 };
 
 
@@ -152,6 +224,24 @@ static const uint64_t max_vals[MAX_NUMERIC_TPI + 1] =
     /* We don't enforce the maximum practical UDP payload value of 65527, as
      * it is not required by the spec and is not necessary.
      */
+#if 1
+    VINT_MAX_VALUE, // TPI_MAX_IDLE_TIMEOUT
+    VINT_MAX_VALUE, // TPI_MAX_UDP_PAYLOAD_SIZE
+    VINT_MAX_VALUE, // TPI_INIT_MAX_DATA
+    VINT_MAX_VALUE, // TPI_INIT_MAX_STREAM_DATA_BIDI_LOCAL
+    VINT_MAX_VALUE, // TPI_INIT_MAX_STREAM_DATA_BIDI_REMOTE
+    VINT_MAX_VALUE, // TPI_INIT_MAX_STREAM_DATA_UNI
+    1ull << 60, // TPI_INIT_MAX_STREAMS_BIDI
+    1ull << 60, // TPI_INIT_MAX_STREAMS_UNI
+    TP_MAX_ACK_DELAY_EXP, // TPI_ACK_DELAY_EXPONENT
+    TP_MAX_MAX_ACK_DELAY, // TPI_MAX_ACK_DELAY
+    VINT_MAX_VALUE, // TPI_ACTIVE_CONNECTION_ID_LIMIT
+    (1u << 24) - 1u, // TPI_MIN_ACK_DELAY
+    (1u << 24) - 1u, // TPI_MIN_ACK_DELAY_02
+    TS_WANT_THEM|TS_GENERATE_THEM, // TPI_TIMESTAMPS
+    VINT_MAX_VALUE, // TPI_MAX_DATAGRAM_FRAME_SIZE
+    1, // TPI_LOSS_BITS
+#else
     [TPI_MAX_UDP_PAYLOAD_SIZE]              =  VINT_MAX_VALUE,
     [TPI_ACK_DELAY_EXPONENT]                =  TP_MAX_ACK_DELAY_EXP,
     [TPI_INIT_MAX_STREAMS_UNI]              =  1ull << 60,
@@ -168,17 +258,37 @@ static const uint64_t max_vals[MAX_NUMERIC_TPI + 1] =
     [TPI_MIN_ACK_DELAY_02]                  =  (1u << 24) - 1u,
     [TPI_TIMESTAMPS]                        =  TS_WANT_THEM|TS_GENERATE_THEM,
     [TPI_MAX_DATAGRAM_FRAME_SIZE]           =  VINT_MAX_VALUE,
+#endif
 };
 
 
 static const uint64_t min_vals[MAX_NUMERIC_TPI + 1] =
 {
     /* On the other hand, we do enforce the lower bound. */
+#if 1
+    0, // TPI_MAX_IDLE_TIMEOUT
+    1200, // TPI_MAX_UDP_PAYLOAD_SIZE
+    0, // TPI_INIT_MAX_DATA
+    0, // TPI_INIT_MAX_STREAM_DATA_BIDI_LOCAL
+    0, // TPI_INIT_MAX_STREAM_DATA_BIDI_REMOTE
+    0, // TPI_INIT_MAX_STREAM_DATA_UNI
+    0, // TPI_INIT_MAX_STREAMS_BIDI
+    0, // TPI_INIT_MAX_STREAMS_UNI
+    0, // TPI_ACK_DELAY_EXPONENT
+    0, // TPI_MAX_ACK_DELAY
+    2, // TPI_ACTIVE_CONNECTION_ID_LIMIT
+    1, // TPI_MIN_ACK_DELAY
+    1, // TPI_MIN_ACK_DELAY_02
+    TS_WANT_THEM, // TPI_TIMESTAMPS
+    0, // TPI_MAX_DATAGRAM_FRAME_SIZE
+    0, // TPI_LOSS_BITS
+#else
     [TPI_MAX_UDP_PAYLOAD_SIZE]              =  1200,
     [TPI_MIN_ACK_DELAY]                     =  1,
     [TPI_MIN_ACK_DELAY_02]                  =  1,
     [TPI_ACTIVE_CONNECTION_ID_LIMIT]        =  2,
     [TPI_TIMESTAMPS]                        =  TS_WANT_THEM,
+#endif
 };
 
 
@@ -480,11 +590,19 @@ lsquic_tp_decode (const unsigned char *const buf, size_t bufsz,
     enum transport_param_id tpi;
     unsigned set_of_ids;
     int s;
+#if 1 // hezhiwen
+    struct transport_params tp = {0};
+#endif
 
     p = buf;
     end = buf + bufsz;
 
+#if 1 // hezhiwen
+    TP_DEFAULT_VALUES_EX(tp);
+    *params = tp;
+#else
     *params = TP_INITIALIZER();
+#endif
 
 #define EXPECT_LEN(expected_len) do {                               \
     if (expected_len != len)                                        \
@@ -1010,11 +1128,19 @@ lsquic_tp_decode_27 (const unsigned char *const buf, size_t bufsz,
     enum transport_param_id tpi;
     unsigned set_of_ids;
     int s;
+#if 1 // hezhiwen
+    struct transport_params tp = {0};
+#endif
 
     p = buf;
     end = buf + bufsz;
 
+#if 1 // hezhiwen
+    TP_DEFAULT_VALUES_EX(tp);
+    *params = tp;
+#else
     *params = TP_INITIALIZER();
+#endif
 
 #define EXPECT_LEN(expected_len) do {                               \
     if (expected_len != len)                                        \

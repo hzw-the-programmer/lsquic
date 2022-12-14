@@ -43,7 +43,9 @@ lsquic_set32_insert_set_elem (struct lsquic_set32 *set, int i, uint32_t value)
 
     if (set->n_elems == INT_MAX)
     {
+    #if 0
         errno = EOVERFLOW;
+    #endif
         return -1;
     }
 
@@ -99,13 +101,19 @@ lsquic_set32_check_elems_sorted (const struct lsquic_set32 *set)
 int
 lsquic_set32_add (struct lsquic_set32 *set, uint32_t value)
 {
+#if 1
+    int low, high, i;
+#endif
+
     if (value < 64)
     {
         set->lowset |= 1ULL << value;
         return 0;
     }
 
+#if 0
     int low, high, i;
+#endif
 
     if (set->n_elems > 0)
     {
@@ -166,12 +174,18 @@ lsquic_set32_add (struct lsquic_set32 *set, uint32_t value)
 int
 lsquic_set32_has (const struct lsquic_set32 *set, uint32_t value)
 {
+#if 1
+    int low, high, i;
+#endif
+
     if (value < 64)
     {
         return !!(set->lowset & (1ULL << value));
     }
 
+#if 0
     int low, high, i;
+#endif
 
     low = 0, high = set->n_elems - 1;
     while (low <= high)
@@ -223,7 +237,9 @@ lsquic_set64_insert_set_elem (struct lsquic_set64 *set, int i, uint64_t value)
 
     if (set->n_elems == INT_MAX)
     {
+    #if 0
         errno = EOVERFLOW;
+    #endif
         return -1;
     }
 
@@ -279,13 +295,19 @@ lsquic_set64_check_elems_sorted (const struct lsquic_set64 *set)
 int
 lsquic_set64_add (struct lsquic_set64 *set, uint64_t value)
 {
+#if 1
+    int low, high, i;
+#endif
+
     if (value < 64)
     {
         set->lowset |= 1ULL << value;
         return 0;
     }
 
+#if 0
     int low, high, i;
+#endif
 
     if (set->n_elems > 0)
     {
@@ -346,12 +368,18 @@ lsquic_set64_add (struct lsquic_set64 *set, uint64_t value)
 int
 lsquic_set64_has (const struct lsquic_set64 *set, uint64_t value)
 {
+#if 1
+    int low, high, i;
+#endif
+
     if (value < 64)
     {
         return !!(set->lowset & (1ULL << value));
     }
 
+#if 0
     int low, high, i;
+#endif
 
     low = 0, high = set->n_elems - 1;
     while (low <= high)

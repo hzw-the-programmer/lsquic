@@ -32,6 +32,9 @@ static int
 hcso_write_type (struct hcso_writer *writer)
 {
     int s;
+#if 1 // hezhiwen
+    unsigned char buf[8] = {0};
+#endif
 
 #ifndef NDEBUG
     if (writer->how_flags & HOW_RAND_VARINT)
@@ -45,6 +48,27 @@ hcso_write_type (struct hcso_writer *writer)
 
     switch (s)
     {
+#if 1 // hezhiwen
+    case 0:
+        buf[0] = HQUST_CONTROL;
+        return lsquic_frab_list_write(&writer->how_fral,
+                                buf, 1);
+    case 1:
+        buf[0] = 0x40;
+        buf[1] = HQUST_CONTROL;
+        return lsquic_frab_list_write(&writer->how_fral,
+                            buf, 2);
+    case 2:
+        buf[0] = 0x80;
+        buf[3] = HQUST_CONTROL;
+        return lsquic_frab_list_write(&writer->how_fral,
+                buf, 4);
+    default:
+        buf[0] = 0xC0;
+        buf[7] = HQUST_CONTROL;
+        return lsquic_frab_list_write(&writer->how_fral,
+                buf, 8);
+#else
     case 0:
         return lsquic_frab_list_write(&writer->how_fral,
                                 (unsigned char []) { HQUST_CONTROL }, 1);
@@ -58,6 +82,7 @@ hcso_write_type (struct hcso_writer *writer)
         return lsquic_frab_list_write(&writer->how_fral,
                 (unsigned char []) { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                                         HQUST_CONTROL }, 8);
+#endif
     }
 }
 
@@ -355,11 +380,19 @@ static void
 hcso_on_write (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 {
     struct hcso_writer *const writer = (void *) ctx;
+#if 1 // hezhiwen
+    struct lsquic_reader reader = {
+        lsquic_frab_list_read,
+        lsquic_frab_list_size,
+        &writer->how_fral
+    };
+#else
     struct lsquic_reader reader = {
         .lsqr_read  = lsquic_frab_list_read,
         .lsqr_size  = lsquic_frab_list_size,
         .lsqr_ctx   = &writer->how_fral
     };
+#endif
     ssize_t nw;
     struct lsquic_conn *lconn;
 
@@ -408,10 +441,27 @@ hcso_on_read (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 
 static const struct lsquic_stream_if hcso_if =
 {
+#if 1 // hezhiwen
+    NULL, // on_new_conn
+    NULL, // on_goaway_received
+    NULL, // on_conn_closed
+    hcso_on_new, // on_new_stream
+    hcso_on_read, // on_read
+    hcso_on_write, // on_write
+    hcso_on_close, // on_close
+    NULL, // on_dg_write
+    NULL, // on_datagram
+    NULL, // on_hsk_done
+    NULL, // on_new_token
+    NULL, // on_sess_resume_info
+    NULL, // on_reset
+    NULL, // on_conncloseframe_received
+#else
     .on_new_stream  = hcso_on_new,
     .on_read        = hcso_on_read,
     .on_write       = hcso_on_write,
     .on_close       = hcso_on_close,
+#endif
 };
 
 const struct lsquic_stream_if *const lsquic_hcso_writer_if = &hcso_if;

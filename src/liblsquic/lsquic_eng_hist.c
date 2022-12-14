@@ -19,14 +19,20 @@ log_hist_slice (const struct hist_slice *slice, time_t t)
 {
     size_t strftime(char *s, size_t max, const char *format,
                                   const struct tm *tm);
+#if 1 // hezhiwen
+    struct tm tm;
+    char timestr[sizeof("12:00:00")];
+#endif
     if (slice->sl_packets_in == 0 &&
         slice->sl_packets_out == 0 &&
         slice->sl_del_mini_conns == 0 &&
         slice->sl_del_full_conns == 0)
         return;
     
+#if 0 // hezhiwen
     struct tm tm;
     char timestr[sizeof("12:00:00")];
+#endif
 
     localtime_r(&t, &tm);
     strftime(timestr, sizeof(timestr), "%T", &tm);

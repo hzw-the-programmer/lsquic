@@ -58,10 +58,17 @@ ietf_mini_conn_ci_abort_error (struct lsquic_conn *lconn, int is_app,
 
 static const enum header_type el2hety[] =
 {
+#if 1 // hezhiwen
+    HETY_INITIAL, // ENC_LEV_CLEAR
+    0, // ENC_LEV_EARLY
+    HETY_HANDSHAKE, // ENC_LEV_INIT
+    HETY_NOT_SET, // ENC_LEV_FORW
+#else
     [ENC_LEV_INIT]  = HETY_HANDSHAKE,
     [ENC_LEV_CLEAR] = HETY_INITIAL,
     [ENC_LEV_FORW]  = HETY_NOT_SET,
     [ENC_LEV_EARLY] = 0,    /* Invalid */
+#endif
 };
 
 
@@ -430,12 +437,21 @@ imico_stream_enc_level (void *stream)
 
 static const struct crypto_stream_if crypto_stream_if =
 {
+#if 1 // hezhiwen
+    imico_stream_write, // csi_write
+    imico_stream_flush, // csi_flush
+    imico_stream_readf, // csi_readf
+    imico_stream_wantwrite, // csi_wantwrite
+    imico_stream_wantread, // csi_wantread
+    imico_stream_enc_level, // csi_enc_level
+#else
     .csi_write      = imico_stream_write,
     .csi_flush      = imico_stream_flush,
     .csi_readf      = imico_stream_readf,
     .csi_wantwrite  = imico_stream_wantwrite,
     .csi_wantread   = imico_stream_wantread,
     .csi_enc_level  = imico_stream_enc_level,
+#endif
 };
 
 
@@ -985,8 +1001,13 @@ imico_take_rtt_sample (struct ietf_mini_conn *conn,
                             const struct lsquic_packet_out *packet_out,
                             lsquic_time_t now, lsquic_time_t lack_delta)
 {
+#if 1 // hezhiwen
+    lsquic_time_t measured_rtt = now - packet_out->po_sent;
+    assert(packet_out->po_sent);
+#else
     assert(packet_out->po_sent);
     lsquic_time_t measured_rtt = now - packet_out->po_sent;
+#endif
     if (lack_delta < measured_rtt)
     {
         lsquic_rtt_stats_update(&conn->imc_rtt_stats, measured_rtt, lack_delta);
@@ -1139,6 +1160,35 @@ imico_process_invalid_frame (IMICO_PROC_FRAME_ARGS)
 static unsigned (*const imico_process_frames[N_QUIC_FRAMES])
                                                 (IMICO_PROC_FRAME_ARGS) =
 {
+#if 1 // hezhiwen
+    NULL, // QUIC_FRAME_INVALID
+    imico_process_invalid_frame, // QUIC_FRAME_STREAM
+    imico_process_ack_frame, // QUIC_FRAME_ACK
+    imico_process_padding_frame, // QUIC_FRAME_PADDING
+    imico_process_invalid_frame, // QUIC_FRAME_RST_STREAM
+    imico_process_connection_close_frame, // QUIC_FRAME_CONNECTION_CLOSE
+    NULL, // QUIC_FRAME_GOAWAY
+    NULL, // QUIC_FRAME_WINDOW_UPDATE
+    imico_process_invalid_frame, // QUIC_FRAME_BLOCKED
+    NULL, // QUIC_FRAME_STOP_WAITING
+    imico_process_ping_frame, // QUIC_FRAME_PING
+    imico_process_invalid_frame, // QUIC_FRAME_MAX_DATA
+    imico_process_invalid_frame, // QUIC_FRAME_MAX_STREAM_DATA
+    imico_process_invalid_frame, // QUIC_FRAME_MAX_STREAMS
+    imico_process_invalid_frame, // QUIC_FRAME_STREAM_BLOCKED
+    imico_process_invalid_frame, // QUIC_FRAME_STREAMS_BLOCKED
+    imico_process_invalid_frame, // QUIC_FRAME_NEW_CONNECTION_ID
+    imico_process_invalid_frame, // QUIC_FRAME_STOP_SENDING
+    imico_process_invalid_frame, // QUIC_FRAME_PATH_CHALLENGE
+    imico_process_invalid_frame, // QUIC_FRAME_PATH_RESPONSE
+    imico_process_crypto_frame, // QUIC_FRAME_CRYPTO
+    NULL, // QUIC_FRAME_RETIRE_CONNECTION_ID
+    NULL, // QUIC_FRAME_NEW_TOKEN
+    imico_process_invalid_frame, // QUIC_FRAME_HANDSHAKE_DONE
+    imico_process_invalid_frame, // QUIC_FRAME_ACK_FREQUENCY
+    imico_process_invalid_frame, // QUIC_FRAME_TIMESTAMP
+    NULL, // QUIC_FRAME_DATAGRAM
+#else
     [QUIC_FRAME_PADDING]            =  imico_process_padding_frame,
     [QUIC_FRAME_CRYPTO]             =  imico_process_crypto_frame,
     [QUIC_FRAME_ACK]                =  imico_process_ack_frame,
@@ -1163,6 +1213,7 @@ static unsigned (*const imico_process_frames[N_QUIC_FRAMES])
     [QUIC_FRAME_HANDSHAKE_DONE]     =  imico_process_invalid_frame,
     [QUIC_FRAME_ACK_FREQUENCY]      =  imico_process_invalid_frame,
     [QUIC_FRAME_TIMESTAMP]          =  imico_process_invalid_frame,
+#endif
 };
 
 
@@ -1736,9 +1787,15 @@ lsquic_imico_rechist_first (void *rechist_ctx)
 
 static const enum header_type pns2hety[] =
 {
+#if 1 // hezhiwen
+    HETY_INITIAL,
+    HETY_HANDSHAKE,
+    HETY_NOT_SET,
+#else
     [PNS_INIT]  = HETY_INITIAL,
     [PNS_HSK]   = HETY_HANDSHAKE,
     [PNS_APP]   = HETY_NOT_SET,
+#endif
 };
 
 
@@ -2137,6 +2194,61 @@ ietf_mini_conn_ci_count_garbage (struct lsquic_conn *lconn, size_t garbage_sz)
 
 
 static const struct conn_iface mini_conn_ietf_iface = {
+#if 1 // hezhiwen
+    ietf_mini_conn_ci_tick, // ci_tick
+    ietf_mini_conn_ci_packet_in, // ci_packet_in
+    ietf_mini_conn_ci_next_packet_to_send, // ci_next_packet_to_send
+    ietf_mini_conn_ci_packet_sent, // ci_packet_sent
+    ietf_mini_conn_ci_packet_not_sent, // ci_packet_not_sent
+    NULL, // ci_packet_too_large
+    ietf_mini_conn_ci_hsk_done, // ci_hsk_done
+    ietf_mini_conn_ci_destroy, // ci_destroy
+    ietf_mini_conn_ci_is_tickable, // ci_is_tickable
+    ietf_mini_conn_ci_next_tick_time, // ci_next_tick_time
+    NULL, // ci_can_write_ack
+    NULL, // ci_write_ack
+#if LSQUIC_CONN_STATS
+    NULL, // ci_get_stats
+    NULL, // ci_log_stats
+#endif
+    ietf_mini_conn_ci_client_call_on_new, // ci_client_call_on_new
+    NULL, // ci_status
+    NULL, // ci_n_avail_streams
+    NULL, // ci_n_pending_streams
+    NULL, // ci_cancel_pending_streams
+    NULL, // ci_going_away
+    NULL, // ci_is_push_enabled
+    NULL, // ci_get_stream_by_id
+    ietf_mini_conn_ci_get_engine, // ci_get_engine
+    NULL, // ci_make_stream
+    NULL, // ci_abort
+    NULL, // ci_retire_cid
+    NULL, // ci_close
+    NULL, // ci_stateless_reset
+    NULL, // ci_crypto_keysize
+    NULL, // ci_crypto_alg_keysize
+    NULL, // ci_crypto_ver
+    NULL, // ci_crypto_cipher
+    NULL, // ci_push_stream
+    ietf_mini_conn_ci_internal_error, // ci_internal_error
+    ietf_mini_conn_ci_abort_error, // ci_abort_error
+    ietf_mini_conn_ci_tls_alert, // ci_tls_alert
+    NULL, // ci_drain_time
+    NULL, // ci_report_live
+    ietf_mini_conn_ci_get_path, // ci_get_path
+    ietf_mini_conn_ci_record_addrs, // ci_record_addrs
+    ietf_mini_conn_ci_get_log_cid, // ci_get_log_cid
+    NULL, // ci_drop_crypto_streams
+    ietf_mini_conn_ci_count_garbage, // ci_count_garbage
+    NULL, // ci_mtu_probe_acked
+    NULL, // ci_retx_timeout
+    NULL, // ci_ack_snapshot
+    NULL, // ci_ack_rollback
+    NULL, // ci_want_datagram_write
+    NULL, // ci_set_min_datagram_size
+    NULL, // ci_get_min_datagram_size
+    NULL, // ci_early_data_failed
+#else
     .ci_abort_error          =  ietf_mini_conn_ci_abort_error,
     .ci_client_call_on_new   =  ietf_mini_conn_ci_client_call_on_new,
     .ci_count_garbage        =  ietf_mini_conn_ci_count_garbage,
@@ -2155,4 +2267,5 @@ static const struct conn_iface mini_conn_ietf_iface = {
     .ci_record_addrs         =  ietf_mini_conn_ci_record_addrs,
     .ci_tick                 =  ietf_mini_conn_ci_tick,
     .ci_tls_alert            =  ietf_mini_conn_ci_tls_alert,
+#endif
 };

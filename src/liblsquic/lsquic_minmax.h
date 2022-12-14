@@ -30,10 +30,18 @@ struct minmax
         = (minmax_)->samples[2] = (sample_);                            \
 } while (0)
 
+#if 1 // hezhiwen
+#define minmax_init(minmax_, window_) do {                              \
+    struct minmax_sample sample = { 0, 0, };                            \
+    (minmax_)->window = (window_);                                      \
+    minmax_reset(minmax_, sample);                                      \
+} while (0)
+#else
 #define minmax_init(minmax_, window_) do {                              \
     (minmax_)->window = (window_);                                      \
     minmax_reset(minmax_, ((struct minmax_sample) { 0, 0, }));          \
 } while (0)
+#endif
 
 void lsquic_minmax_update_min(struct minmax *, uint64_t now, uint64_t meas);
 void lsquic_minmax_update_max(struct minmax *, uint64_t now, uint64_t meas);

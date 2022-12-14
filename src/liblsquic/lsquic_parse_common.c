@@ -48,6 +48,81 @@ static int (* const parse_begin_funcs[32]) (struct lsquic_packet_in *,
                 size_t length, int is_server, unsigned cid_len,
                 struct packin_parse_state *) =
 {
+#if 1 // hezhiwen
+#if 1
+    lsquic_Q046_parse_packet_in_short_begin, // 0000 0000 = 0
+    lsquic_gquic_parse_packet_in_begin, // 0000 1000 = 1
+    lsquic_Q046_parse_packet_in_short_begin, // 0001 0000 = 2
+    lsquic_gquic_parse_packet_in_begin, // 0001 1000 = 3
+    lsquic_Q046_parse_packet_in_short_begin, // 0010 0000 = 4
+    lsquic_gquic_parse_packet_in_begin, // 0010 1000 = 5
+    lsquic_Q046_parse_packet_in_short_begin, // 0011 0000 = 6
+    lsquic_gquic_parse_packet_in_begin, // 0011 1000 = 7
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0100 0000 = 8
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0100 1000 = 9
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0101 0000 = 10
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0101 1000 = 11
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0110 0000 = 12
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0110 1000 = 13
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0111 0000 = 14
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0111 1000 = 15
+    parse_ietf_v1_or_Q046plus_long_begin, // 1000 0000 = 16
+    parse_ietf_v1_or_Q046plus_long_begin, // 1000 1000 = 17
+    parse_ietf_v1_or_Q046plus_long_begin, // 1001 0000 = 18
+    parse_ietf_v1_or_Q046plus_long_begin, // 1001 1000 = 19
+    parse_ietf_v1_or_Q046plus_long_begin, // 1010 0000 = 20
+    parse_ietf_v1_or_Q046plus_long_begin, // 1010 1000 = 21
+    lsquic_Q046_parse_packet_in_long_begin, // 1011 0000 = 22
+    lsquic_Q046_parse_packet_in_long_begin, // 1011 1000 = 23
+    parse_ietf_v1_or_Q046plus_long_begin, // 1100 0000 = 24
+    parse_ietf_v1_or_Q046plus_long_begin, // 1100 1000 = 25
+    parse_ietf_v1_or_Q046plus_long_begin, // 1101 0000 = 26
+    parse_ietf_v1_or_Q046plus_long_begin, // 1101 1000 = 27
+    parse_ietf_v1_or_Q046plus_long_begin, // 1110 0000 = 28
+    parse_ietf_v1_or_Q046plus_long_begin, // 1110 1000 = 29
+    lsquic_Q046_parse_packet_in_long_begin, // 1111 0000 = 30
+    lsquic_Q046_parse_packet_in_long_begin, // 1111 1000 = 31
+#else
+    lsquic_Q046_parse_packet_in_long_begin, // 1111 1000 = 31
+    lsquic_Q046_parse_packet_in_long_begin, // 1011 1000 = 23
+    lsquic_Q046_parse_packet_in_long_begin, // 1111 0000 = 30
+    lsquic_Q046_parse_packet_in_long_begin, // 1011 0000 = 22
+
+    parse_ietf_v1_or_Q046plus_long_begin, // 1100 1000 = 25
+    parse_ietf_v1_or_Q046plus_long_begin, // 1000 1000 = 17
+    parse_ietf_v1_or_Q046plus_long_begin, // 1100 0000 = 24
+    parse_ietf_v1_or_Q046plus_long_begin, // 1000 0000 = 16
+
+    parse_ietf_v1_or_Q046plus_long_begin, // 1101 1000 = 27
+    parse_ietf_v1_or_Q046plus_long_begin, // 1001 1000 = 19
+    parse_ietf_v1_or_Q046plus_long_begin, // 1101 0000 = 26
+    parse_ietf_v1_or_Q046plus_long_begin, // 1001 0000 = 18
+
+    parse_ietf_v1_or_Q046plus_long_begin, // 1110 1000 = 29
+    parse_ietf_v1_or_Q046plus_long_begin, // 1010 1000 = 21
+    parse_ietf_v1_or_Q046plus_long_begin, // 1110 0000 = 28
+    parse_ietf_v1_or_Q046plus_long_begin, // 1010 0000 = 20
+
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0100 0000 = 8
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0100 1000 = 9
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0101 0000 = 10
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0101 1000 = 11
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0110 0000 = 12
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0110 1000 = 13
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0111 0000 = 14
+    lsquic_ietf_v1_parse_packet_in_short_begin, // 0111 1000 = 15
+
+    lsquic_Q046_parse_packet_in_short_begin, // 0000 0000 = 0
+    lsquic_Q046_parse_packet_in_short_begin, // 0001 0000 = 2
+    lsquic_Q046_parse_packet_in_short_begin, // 0010 0000 = 4
+    lsquic_Q046_parse_packet_in_short_begin, // 0011 0000 = 6
+
+    lsquic_gquic_parse_packet_in_begin, // 0000 1000 = 1
+    lsquic_gquic_parse_packet_in_begin, // 0001 1000 = 3
+    lsquic_gquic_parse_packet_in_begin, // 0010 1000 = 5
+    lsquic_gquic_parse_packet_in_begin, // 0011 1000 = 7
+#endif
+#else
     /* Xs vary, Gs are iGnored: */
 #define PBEL(mask) [(mask) >> 3]
     /* 1X11 XGGG: */
@@ -90,6 +165,7 @@ static int (* const parse_begin_funcs[32]) (struct lsquic_packet_in *,
     PBEL(0x00|0x00|0x20|0x00|0x08)  = lsquic_gquic_parse_packet_in_begin,
     PBEL(0x00|0x00|0x20|0x10|0x08)  = lsquic_gquic_parse_packet_in_begin,
 #undef PBEL
+#endif
 };
 
 
@@ -336,6 +412,125 @@ lsquic_dcid_from_packet (const unsigned char *buf, size_t bufsz,
 /* See [draft-ietf-quic-transport-28], Section 12.4 (Table 3) */
 const enum quic_ft_bit lsquic_legal_frames_by_level[N_LSQVER][N_ENC_LEVS] =
 {
+#if 1 // hezhiwen
+    // LSQVER_043
+    {0},
+    // LSQVER_046
+    {0},
+    // LSQVER_050
+    {0},
+    // LSQVER_ID27
+    {
+        // ENC_LEV_CLEAR
+        QUIC_FTBIT_CRYPTO | QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+            | QUIC_FTBIT_ACK | QUIC_FTBIT_CONNECTION_CLOSE,
+
+        // ENC_LEV_EARLY
+        QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+            | QUIC_FTBIT_STREAM | QUIC_FTBIT_RST_STREAM
+            | QUIC_FTBIT_BLOCKED
+            | QUIC_FTBIT_MAX_DATA | QUIC_FTBIT_MAX_STREAM_DATA
+            | QUIC_FTBIT_MAX_STREAMS | QUIC_FTBIT_STREAM_BLOCKED
+            | QUIC_FTBIT_STREAMS_BLOCKED
+            | QUIC_FTBIT_NEW_CONNECTION_ID | QUIC_FTBIT_STOP_SENDING
+            | QUIC_FTBIT_PATH_CHALLENGE | QUIC_FTBIT_PATH_RESPONSE
+            | QUIC_FTBIT_RETIRE_CONNECTION_ID
+            | QUIC_FTBIT_DATAGRAM,
+
+        // ENC_LEV_INIT
+        QUIC_FTBIT_CRYPTO | QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+            | QUIC_FTBIT_ACK| QUIC_FTBIT_CONNECTION_CLOSE,
+
+        // ENC_LEV_FORW
+        QUIC_FTBIT_CRYPTO | QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+            | QUIC_FTBIT_ACK | QUIC_FTBIT_CONNECTION_CLOSE
+            | QUIC_FTBIT_STREAM | QUIC_FTBIT_RST_STREAM
+            | QUIC_FTBIT_BLOCKED
+            | QUIC_FTBIT_MAX_DATA | QUIC_FTBIT_MAX_STREAM_DATA
+            | QUIC_FTBIT_MAX_STREAMS | QUIC_FTBIT_STREAM_BLOCKED
+            | QUIC_FTBIT_STREAMS_BLOCKED
+            | QUIC_FTBIT_NEW_CONNECTION_ID | QUIC_FTBIT_STOP_SENDING
+            | QUIC_FTBIT_PATH_CHALLENGE | QUIC_FTBIT_PATH_RESPONSE
+            | QUIC_FTBIT_HANDSHAKE_DONE | QUIC_FTBIT_ACK_FREQUENCY
+            | QUIC_FTBIT_RETIRE_CONNECTION_ID | QUIC_FTBIT_NEW_TOKEN
+            | QUIC_FTBIT_TIMESTAMP
+            | QUIC_FTBIT_DATAGRAM,
+    },
+    // LSQVER_ID29
+    {
+        // ENC_LEV_CLEAR
+        QUIC_FTBIT_CRYPTO | QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+            | QUIC_FTBIT_ACK | QUIC_FTBIT_CONNECTION_CLOSE,
+
+        // ENC_LEV_EARLY
+        QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+            | QUIC_FTBIT_STREAM | QUIC_FTBIT_RST_STREAM
+            | QUIC_FTBIT_BLOCKED | QUIC_FTBIT_CONNECTION_CLOSE
+            | QUIC_FTBIT_MAX_DATA | QUIC_FTBIT_MAX_STREAM_DATA
+            | QUIC_FTBIT_MAX_STREAMS | QUIC_FTBIT_STREAM_BLOCKED
+            | QUIC_FTBIT_STREAMS_BLOCKED
+            | QUIC_FTBIT_NEW_CONNECTION_ID | QUIC_FTBIT_STOP_SENDING
+            | QUIC_FTBIT_PATH_CHALLENGE | QUIC_FTBIT_PATH_RESPONSE
+            | QUIC_FTBIT_DATAGRAM
+            | QUIC_FTBIT_RETIRE_CONNECTION_ID,
+
+        // ENC_LEV_INIT
+        QUIC_FTBIT_CRYPTO | QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+            | QUIC_FTBIT_ACK| QUIC_FTBIT_CONNECTION_CLOSE,
+
+        // ENC_LEV_FORW
+        QUIC_FTBIT_CRYPTO | QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+            | QUIC_FTBIT_ACK | QUIC_FTBIT_CONNECTION_CLOSE
+            | QUIC_FTBIT_STREAM | QUIC_FTBIT_RST_STREAM
+            | QUIC_FTBIT_BLOCKED
+            | QUIC_FTBIT_MAX_DATA | QUIC_FTBIT_MAX_STREAM_DATA
+            | QUIC_FTBIT_MAX_STREAMS | QUIC_FTBIT_STREAM_BLOCKED
+            | QUIC_FTBIT_STREAMS_BLOCKED
+            | QUIC_FTBIT_NEW_CONNECTION_ID | QUIC_FTBIT_STOP_SENDING
+            | QUIC_FTBIT_PATH_CHALLENGE | QUIC_FTBIT_PATH_RESPONSE
+            | QUIC_FTBIT_HANDSHAKE_DONE | QUIC_FTBIT_ACK_FREQUENCY
+            | QUIC_FTBIT_RETIRE_CONNECTION_ID | QUIC_FTBIT_NEW_TOKEN
+            | QUIC_FTBIT_TIMESTAMP
+            | QUIC_FTBIT_DATAGRAM,
+    },
+    // LSQVER_I001
+    {
+        // ENC_LEV_CLEAR
+        QUIC_FTBIT_CRYPTO | QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+                    | QUIC_FTBIT_ACK | QUIC_FTBIT_CONNECTION_CLOSE,
+
+        // ENC_LEV_EARLY
+        QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+            | QUIC_FTBIT_STREAM | QUIC_FTBIT_RST_STREAM
+            | QUIC_FTBIT_BLOCKED | QUIC_FTBIT_CONNECTION_CLOSE
+            | QUIC_FTBIT_MAX_DATA | QUIC_FTBIT_MAX_STREAM_DATA
+            | QUIC_FTBIT_MAX_STREAMS | QUIC_FTBIT_STREAM_BLOCKED
+            | QUIC_FTBIT_STREAMS_BLOCKED
+            | QUIC_FTBIT_NEW_CONNECTION_ID | QUIC_FTBIT_STOP_SENDING
+            | QUIC_FTBIT_PATH_CHALLENGE
+            | QUIC_FTBIT_DATAGRAM
+            | QUIC_FTBIT_RETIRE_CONNECTION_ID,
+
+        // ENC_LEV_INIT
+        QUIC_FTBIT_CRYPTO | QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+            | QUIC_FTBIT_ACK| QUIC_FTBIT_CONNECTION_CLOSE,
+
+        // ENC_LEV_FORW
+        QUIC_FTBIT_CRYPTO | QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
+            | QUIC_FTBIT_ACK | QUIC_FTBIT_CONNECTION_CLOSE
+            | QUIC_FTBIT_STREAM | QUIC_FTBIT_RST_STREAM
+            | QUIC_FTBIT_BLOCKED
+            | QUIC_FTBIT_MAX_DATA | QUIC_FTBIT_MAX_STREAM_DATA
+            | QUIC_FTBIT_MAX_STREAMS | QUIC_FTBIT_STREAM_BLOCKED
+            | QUIC_FTBIT_STREAMS_BLOCKED
+            | QUIC_FTBIT_NEW_CONNECTION_ID | QUIC_FTBIT_STOP_SENDING
+            | QUIC_FTBIT_PATH_CHALLENGE | QUIC_FTBIT_PATH_RESPONSE
+            | QUIC_FTBIT_HANDSHAKE_DONE | QUIC_FTBIT_ACK_FREQUENCY
+            | QUIC_FTBIT_RETIRE_CONNECTION_ID | QUIC_FTBIT_NEW_TOKEN
+            | QUIC_FTBIT_TIMESTAMP
+            | QUIC_FTBIT_DATAGRAM,
+    },
+#else
     [LSQVER_I001] = {
     [ENC_LEV_CLEAR] = QUIC_FTBIT_CRYPTO | QUIC_FTBIT_PADDING | QUIC_FTBIT_PING
                     | QUIC_FTBIT_ACK | QUIC_FTBIT_CONNECTION_CLOSE,
@@ -427,4 +622,5 @@ const enum quic_ft_bit lsquic_legal_frames_by_level[N_LSQVER][N_ENC_LEVS] =
                     | QUIC_FTBIT_DATAGRAM
                     ,
     },
+#endif
 };

@@ -161,9 +161,15 @@ stream_hq_frame_size (const struct stream_hq_frame *);
 
 const struct stream_filter_if hq_stream_filter_if =
 {
+#if 1 // hezhiwen
+    hq_filter_readable,
+    hq_filter_df,
+    hq_decr_left,
+#else
     .sfi_readable   = hq_filter_readable,
     .sfi_filter_df  = hq_filter_df,
     .sfi_decr_left  = hq_decr_left,
+#endif
 };
 
 
@@ -1436,12 +1442,7 @@ lsquic_stream_rst_frame_sent (lsquic_stream_t *stream)
     stream->sm_qflags &= ~SMQF_SEND_RST;
     if (!(stream->sm_qflags & SMQF_SENDING_FLAGS))
         TAILQ_REMOVE(&stream->conn_pub->sending_streams, stream, next_send_stream);
-
-    /* [RFC9000 QUIC] Section 19.4. RESET_Frames
-     *  An endpoint uses a RESET_STREAM frame (type=0x04)
-     *  to abruptly terminate the sending part of a stream.
-     */
-    stream->stream_flags |= STREAM_RST_SENT|STREAM_U_WRITE_DONE;
+    stream->stream_flags |= STREAM_RST_SENT;
     maybe_finish_stream(stream);
 }
 
@@ -1754,7 +1755,11 @@ lsquic_stream_readv (struct lsquic_stream *stream, const struct iovec *iov,
 ssize_t
 lsquic_stream_read (lsquic_stream_t *stream, void *buf, size_t len)
 {
+#if 1 // hezhiwen
+    struct iovec iov = { buf, len, };
+#else
     struct iovec iov = { .iov_base = buf, .iov_len = len, };
+#endif
     return lsquic_stream_readv(stream, &iov, 1);
 }
 
@@ -2144,12 +2149,23 @@ struct progress
 static struct progress
 stream_progress (const struct lsquic_stream *stream)
 {
+#if 1 // hezhiwen
+    struct progress p = {
+        stream->stream_flags
+          & (STREAM_U_WRITE_DONE|STREAM_U_READ_DONE),
+        stream->sm_qflags
+          & (SMQF_WANT_READ|SMQF_WANT_WRITE|SMQF_WANT_FLUSH|SMQF_SEND_RST),
+    };
+
+    return p;
+#else
     return (struct progress) {
         .s_flags = stream->stream_flags
           & (STREAM_U_WRITE_DONE|STREAM_U_READ_DONE),
         .q_flags = stream->sm_qflags
           & (SMQF_WANT_READ|SMQF_WANT_WRITE|SMQF_WANT_FLUSH|SMQF_SEND_RST),
     };
+#endif
 }
 
 
@@ -3385,10 +3401,20 @@ stream_write_to_packets (lsquic_stream_t *stream, struct lsquic_reader *reader,
     unsigned seen_ok;
     int use_framing;
     struct frame_gen_ctx fg_ctx = {
+    #if 1 // hezhiwen
+        stream, // fgc_stream
+        reader, // fgc_reader
+        0, // fgc_nread_from_reader
+        NULL, // fgc_size
+        NULL, // fgc_fin
+        NULL, // fgc_read
+        thresh, // fgc_thresh
+    #else
         .fgc_stream = stream,
         .fgc_reader = reader,
         .fgc_nread_from_reader = 0,
         .fgc_thresh = thresh,
+    #endif
     };
 
 #if LSQUIC_EXTRA_CHECKS
@@ -3693,7 +3719,11 @@ stream_write (lsquic_stream_t *stream, struct lsquic_reader *reader,
 ssize_t
 lsquic_stream_write (lsquic_stream_t *stream, const void *buf, size_t len)
 {
+#if 1 // hezhiwen
+    struct iovec iov = { buf, len, };
+#else
     struct iovec iov = { .iov_base = (void *) buf, .iov_len = len, };
+#endif
     return lsquic_stream_writev(stream, &iov, 1);
 }
 
@@ -3752,9 +3782,22 @@ ssize_t
 lsquic_stream_writev (lsquic_stream_t *stream, const struct iovec *iov,
                                                                     int iovcnt)
 {
+#if 1 // hezhiwen
+    struct inner_reader_iovec iro = {
+        iov,
+        iov + iovcnt,
+        0,
+    };
+    struct lsquic_reader reader = {
+        inner_reader_iovec_read,
+        inner_reader_iovec_size,
+        &iro,
+    };
+#endif
     COMMON_WRITE_CHECKS();
     SM_HISTORY_APPEND(stream, SHE_USER_WRITE_DATA);
 
+#if 0 // hezhiwen
     struct inner_reader_iovec iro = {
         .iov = iov,
         .end = iov + iovcnt,
@@ -3765,6 +3808,7 @@ lsquic_stream_writev (lsquic_stream_t *stream, const struct iovec *iov,
         .lsqr_size = inner_reader_iovec_size,
         .lsqr_ctx  = &iro,
     };
+#endif
 
     return stream_write(stream, &reader, SWO_BUFFER);
 }
@@ -4023,6 +4067,18 @@ static ssize_t
 stream_write_buf (struct lsquic_stream *stream, const void *buf, size_t sz)
 {
     const struct iovec iov[1] = {{ (void *) buf, sz, }};
+#if 1 // hezhiwen
+    struct inner_reader_iovec iro = {
+        iov,
+        iov + 1,
+        0,
+    };
+    struct lsquic_reader reader = {
+        inner_reader_iovec_read,
+        inner_reader_iovec_size,
+        &iro,
+    };
+#else
     struct inner_reader_iovec iro = {
         .iov = iov,
         .end = iov + 1,
@@ -4033,6 +4089,7 @@ stream_write_buf (struct lsquic_stream *stream, const void *buf, size_t sz)
         .lsqr_size = inner_reader_iovec_size,
         .lsqr_ctx  = &iro,
     };
+#endif
     return stream_write(stream, &reader, SWO_BUFFER);
 }
 
@@ -5151,23 +5208,41 @@ lsquic_stream_sending_state (const struct lsquic_stream *stream)
 
 const char *const lsquic_sss2str[] =
 {
+#if 1 // hezhiwen
+    "Ready",
+    "Send",
+    "Data Sent",
+    "Reset Sent",
+    "Data Recvd",
+    "Reset Recvd",
+#else
     [SSS_READY]        =  "Ready",
     [SSS_SEND]         =  "Send",
     [SSS_DATA_SENT]    =  "Data Sent",
     [SSS_RESET_SENT]   =  "Reset Sent",
     [SSS_DATA_RECVD]   =  "Data Recvd",
     [SSS_RESET_RECVD]  =  "Reset Recvd",
+#endif
 };
 
 
 const char *const lsquic_ssr2str[] =
 {
+#if 1 // hezhiwen
+    "Recv",
+    "Size Known",
+    "Data Recvd",
+    "Reset Recvd",
+    "Data Read",
+    "Reset Read",
+#else
     [SSR_RECV]         =  "Recv",
     [SSR_SIZE_KNOWN]   =  "Size Known",
     [SSR_DATA_RECVD]   =  "Data Recvd",
     [SSR_RESET_RECVD]  =  "Reset Recvd",
     [SSR_DATA_READ]    =  "Data Read",
     [SSR_RESET_READ]   =  "Reset Read",
+#endif
 };
 
 

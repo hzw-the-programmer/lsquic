@@ -40,6 +40,9 @@ static int
 qeh_write_type (struct qpack_enc_hdl *qeh)
 {
     int s;
+#if 1 // hezhiwen
+    unsigned char buf[8] = {0};
+#endif
 
 #ifndef NDEBUG
     const char *env = getenv("LSQUIC_RND_VARINT_LEN");
@@ -54,6 +57,27 @@ qeh_write_type (struct qpack_enc_hdl *qeh)
 
     switch (s)
     {
+#if 1 // hezhiwen
+    case 0:
+        buf[0] = HQUST_QPACK_ENC;
+        return lsquic_frab_list_write(&qeh->qeh_fral,
+                                buf, 1);
+    case 1:
+        buf[0] = 0x40;
+        buf[1] = HQUST_QPACK_ENC;
+        return lsquic_frab_list_write(&qeh->qeh_fral,
+                            buf, 2);
+    case 2:
+        buf[0] = 0x80;
+        buf[3] = HQUST_QPACK_ENC;
+        return lsquic_frab_list_write(&qeh->qeh_fral,
+                buf, 4);
+    default:
+        buf[0] = 0xC0;
+        buf[7] = HQUST_QPACK_ENC;
+        return lsquic_frab_list_write(&qeh->qeh_fral,
+                buf, 8);
+#else
     case 0:
         return lsquic_frab_list_write(&qeh->qeh_fral,
                                 (unsigned char []) { HQUST_QPACK_ENC }, 1);
@@ -67,6 +91,7 @@ qeh_write_type (struct qpack_enc_hdl *qeh)
         return lsquic_frab_list_write(&qeh->qeh_fral,
                 (unsigned char []) { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                                         HQUST_QPACK_ENC }, 8);
+#endif
     }
 }
 
@@ -191,11 +216,19 @@ static void
 qeh_out_on_write (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 {
     struct qpack_enc_hdl *const qeh = (void *) ctx;
+#if 1 // hezhiwen
+    struct lsquic_reader reader = {
+        lsquic_frab_list_read,
+        lsquic_frab_list_size,
+        &qeh->qeh_fral,
+    };
+#else
     struct lsquic_reader reader = {
         .lsqr_read  = lsquic_frab_list_read,
         .lsqr_size  = lsquic_frab_list_size,
         .lsqr_ctx   = &qeh->qeh_fral,
     };
+#endif
     ssize_t nw;
 
     nw = lsquic_stream_writef(stream, &reader);
@@ -234,10 +267,27 @@ qeh_out_on_read (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 
 static const struct lsquic_stream_if qeh_enc_sm_out_if =
 {
+#if 1 // hezhiwen
+    NULL, // on_new_conn
+    NULL, // on_goaway_received
+    NULL, // on_conn_closed
+    qeh_out_on_new, // on_new_stream
+    qeh_out_on_read, // on_read
+    qeh_out_on_write, // on_write
+    qeh_out_on_close, // on_close
+    NULL, // on_dg_write
+    NULL, // on_datagram
+    NULL, // on_hsk_done
+    NULL, // on_new_token
+    NULL, // on_sess_resume_info
+    NULL, // on_reset
+    NULL, // on_conncloseframe_received
+#else
     .on_new_stream  = qeh_out_on_new,
     .on_read        = qeh_out_on_read,
     .on_write       = qeh_out_on_write,
     .on_close       = qeh_out_on_close,
+#endif
 };
 const struct lsquic_stream_if *const lsquic_qeh_enc_sm_out_if =
                                                     &qeh_enc_sm_out_if;
@@ -334,10 +384,27 @@ qeh_in_on_write (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 
 static const struct lsquic_stream_if qeh_dec_sm_in_if =
 {
+#if 1 // hezhiwen
+    NULL, // on_new_conn
+    NULL, // on_goaway_received
+    NULL, // on_conn_closed
+    qeh_in_on_new, // on_new_stream
+    qeh_in_on_read, // on_read
+    qeh_in_on_write, // on_write
+    qeh_in_on_close, // on_close
+    NULL, // on_dg_write
+    NULL, // on_datagram
+    NULL, // on_hsk_done
+    NULL, // on_new_token
+    NULL, // on_sess_resume_info
+    NULL, // on_reset
+    NULL, // on_conncloseframe_received
+#else
     .on_new_stream  = qeh_in_on_new,
     .on_read        = qeh_in_on_read,
     .on_write       = qeh_in_on_write,
     .on_close       = qeh_in_on_close,
+#endif
 };
 const struct lsquic_stream_if *const lsquic_qeh_dec_sm_in_if =
                                                     &qeh_dec_sm_in_if;

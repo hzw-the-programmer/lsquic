@@ -312,6 +312,9 @@ gen_hp_mask_chacha20 (struct enc_sess_iquic *enc_sess,
 {
     const uint8_t *nonce;
     uint32_t counter;
+#if 1 // hezhiwen
+    unsigned char in[5] = {0};
+#endif
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     memcpy(&counter, sample, sizeof(counter));
@@ -319,8 +322,13 @@ gen_hp_mask_chacha20 (struct enc_sess_iquic *enc_sess,
 #error TODO: support non-little-endian machines
 #endif
     nonce = sample + sizeof(counter);
+#if 1 // hezhiwen
+    CRYPTO_chacha_20(mask, in, 5,
+        hp->hp_u.buf[rw], nonce, counter);
+#else
     CRYPTO_chacha_20(mask, (unsigned char [5]) { 0, 0, 0, 0, 0, }, 5,
                                         hp->hp_u.buf[rw], nonce, counter);
+#endif
 }
 
 
@@ -1679,6 +1687,11 @@ get_peer_transport_params (struct enc_sess_iquic *enc_sess)
     char *params_str;
     const enum lsquic_version version = enc_sess->esi_conn->cn_version;
     int have_0rtt_tp;
+#if 1 // hezhiwen
+    const lsquic_cid_t* cids[LAST_TPI + 1] = {NULL};
+    unsigned must_have, must_not_have = 0;
+    enum transport_param_id tpi;
+#endif
 
     SSL_get_peer_quic_transport_params(enc_sess->esi_ssl, &params_buf, &bufsz);
     if (!params_buf)
@@ -1732,6 +1745,11 @@ get_peer_transport_params (struct enc_sess_iquic *enc_sess)
                                                 &params_0rtt, trans_params))
         return -1;
 
+#if 1 // hezhiwen
+    cids[TP_CID_IDX(TPI_ORIGINAL_DEST_CID)] = enc_sess->esi_flags & ESI_ODCID ? &enc_sess->esi_odcid : NULL;
+    cids[TP_CID_IDX(TPI_RETRY_SOURCE_CID)] = enc_sess->esi_flags & ESI_RSCID ? &enc_sess->esi_rscid : NULL;
+    cids[TP_CID_IDX(TPI_INITIAL_SOURCE_CID)] = enc_sess->esi_flags & ESI_ISCID ? &enc_sess->esi_iscid : NULL;
+#else
     const lsquic_cid_t *const cids[LAST_TPI + 1] = {
         [TP_CID_IDX(TPI_ORIGINAL_DEST_CID)]  = enc_sess->esi_flags & ESI_ODCID ? &enc_sess->esi_odcid : NULL,
         [TP_CID_IDX(TPI_RETRY_SOURCE_CID)]   = enc_sess->esi_flags & ESI_RSCID ? &enc_sess->esi_rscid : NULL,
@@ -1739,6 +1757,7 @@ get_peer_transport_params (struct enc_sess_iquic *enc_sess)
     };
 
     unsigned must_have, must_not_have = 0;
+#endif
     if (version > LSQVER_ID27)
     {
         must_have = 1 << TPI_INITIAL_SOURCE_CID;
@@ -1756,7 +1775,9 @@ get_peer_transport_params (struct enc_sess_iquic *enc_sess)
     else
         must_have = 0;
 
+#if 0 // hezhiwen
     enum transport_param_id tpi;
+#endif
     for (tpi = FIRST_TP_CID; tpi <= LAST_TP_CID; ++tpi)
     {
         if (!(must_have & (1 << tpi)))
@@ -2026,17 +2047,38 @@ iquic_esfi_destroy (enc_session_t *enc_session_p)
 /* See [draft-ietf-quic-tls-14], Section 4 */
 static const enum enc_level hety2el[] =
 {
+#if 1 // hezhiwen
+    ENC_LEV_FORW,
+    0,
+    ENC_LEV_CLEAR,
+    0,
+    ENC_LEV_INIT,
+    ENC_LEV_EARLY,
+#else
     [HETY_NOT_SET]   = ENC_LEV_FORW,
     [HETY_VERNEG]    = 0,
     [HETY_INITIAL]   = ENC_LEV_CLEAR,
     [HETY_RETRY]     = 0,
     [HETY_HANDSHAKE] = ENC_LEV_INIT,
     [HETY_0RTT]      = ENC_LEV_EARLY,
+#endif
 };
 
 
 static const enum enc_level pns2enc_level[2][N_PNS] =
 {
+#if 1 // hezhiwen
+    {
+        ENC_LEV_CLEAR,
+        ENC_LEV_INIT,
+        ENC_LEV_EARLY,
+    },
+    {
+        ENC_LEV_CLEAR,
+        ENC_LEV_INIT,
+        ENC_LEV_FORW,
+    },
+#else
     [0] = {
         [PNS_INIT]  = ENC_LEV_CLEAR,
         [PNS_HSK]   = ENC_LEV_INIT,
@@ -2047,6 +2089,7 @@ static const enum enc_level pns2enc_level[2][N_PNS] =
         [PNS_HSK]   = ENC_LEV_INIT,
         [PNS_APP]   = ENC_LEV_FORW,
     },
+#endif
 };
 
 
@@ -2220,7 +2263,12 @@ static struct ku_label
 
 select_ku_label (const struct enc_sess_iquic *enc_sess)
 {
+#if 1 // hezhiwen
+    struct ku_label lbl = { "quic ku", 7, };
+    return lbl;
+#else
     return (struct ku_label) { "quic ku", 7, };
+#endif
 }
 
 
@@ -2252,7 +2300,7 @@ iquic_esf_decrypt_packet (enc_session_t *enc_session_p,
      *  These cipher suites have a 16-byte authentication tag and
      *  produce an output 16 bytes larger than their input.
      */
-    const size_t dst_sz = packet_in->pi_data_sz - IQUIC_TAG_LEN;
+    const size_t dst_sz = packet_in->pi_data_sz - 16;
     unsigned char new_secret[EVP_MAX_KEY_LENGTH];
     struct crypto_ctx crypto_ctx_buf;
     char secret_str[EVP_MAX_KEY_LENGTH * 2 + 1];
@@ -2420,9 +2468,16 @@ iquic_esf_decrypt_packet (enc_session_t *enc_session_p,
 
     if (crypto_ctx == &crypto_ctx_buf)
     {
+    #if 1 // hezhiwen
+        struct ku_label kl;
+    #endif
         LSQ_DEBUG("decryption in the new key phase %u successful, rotate "
             "keys", key_phase);
+    #if 1 // hezhiwen
+        kl = select_ku_label(enc_sess);
+    #else
         const struct ku_label kl = select_ku_label(enc_sess);
+    #endif
         pair->ykp_thresh = packet_in->pi_packno;
         pair->ykp_ctx[ 0 ] = crypto_ctx_buf;
         memcpy(enc_sess->esi_traffic_secrets[ 0 ], new_secret,
@@ -2450,10 +2505,10 @@ iquic_esf_decrypt_packet (enc_session_t *enc_session_p,
         enc_sess->esi_key_phase = key_phase;
     }
 
+    packet_in->pi_data_sz = packet_in->pi_header_sz + out_sz;
     if (packet_in->pi_flags & PI_OWN_DATA)
         lsquic_mm_put_packet_in_buf(&enpub->enp_mm, packet_in->pi_data,
                                                         packet_in->pi_data_sz);
-    packet_in->pi_data_sz = packet_in->pi_header_sz + out_sz;
     packet_in->pi_data = dst;
     packet_in->pi_flags |= PI_OWN_DATA | PI_DECRYPTED
                         | (enc_level << PIBIT_ENC_LEV_SHIFT);
@@ -2729,6 +2784,21 @@ static void iquic_esfi_shake_stream (enc_session_t *sess,
 
 const struct enc_session_funcs_iquic lsquic_enc_session_iquic_ietf_v1 =
 {
+#if 1 // hezhiwen
+    iquic_esfi_create_client, // esfi_create_client
+    iquic_esfi_destroy, // esfi_destroy
+    NULL, // esfi_get_ssl
+    iquic_esfi_get_peer_transport_params, // esfi_get_peer_transport_params
+    iquic_esfi_reset_dcid, // esfi_reset_dcid
+    iquic_esfi_set_iscid, // esfi_set_iscid
+    iquic_esfi_init_server, // esfi_init_server
+    iquic_esfi_set_streams, // esfi_set_streams
+    iquic_esfi_create_server, // esfi_create_server
+    iquic_esfi_shake_stream, // esfi_shake_stream
+    iquic_esfi_handshake_confirmed, // esfi_handshake_confirmed
+    iquic_esfi_in_init, // esfi_in_init
+    iquic_esfi_data_in, // esfi_data_in
+#else
     .esfi_create_client  = iquic_esfi_create_client,
     .esfi_destroy        = iquic_esfi_destroy,
     .esfi_get_peer_transport_params
@@ -2743,11 +2813,29 @@ const struct enc_session_funcs_iquic lsquic_enc_session_iquic_ietf_v1 =
                          = iquic_esfi_handshake_confirmed,
     .esfi_in_init        = iquic_esfi_in_init,
     .esfi_data_in        = iquic_esfi_data_in,
+#endif
 };
 
 
 const struct enc_session_funcs_common lsquic_enc_session_common_ietf_v1 =
 {
+#if 1 // hezhiwen
+    iquic_esf_global_init, // esf_global_init
+    iquic_esf_global_cleanup, // esf_global_cleanup
+    iquic_esf_cipher, // esf_cipher
+    iquic_esf_keysize, // esf_keysize
+    iquic_esf_alg_keysize, // esf_alg_keysize
+    iquic_esf_get_sni, // esf_get_sni
+    iquic_esf_encrypt_packet, // esf_encrypt_packet
+    iquic_esf_decrypt_packet, // esf_decrypt_packet
+    iquic_esf_get_server_cert_chain, // esf_get_server_cert_chain
+    NULL, // esf_verify_reset_token
+    NULL, // esf_did_sess_resume_succeed
+    iquic_esf_sess_resume_enabled, // esf_is_sess_resume_enabled
+    iquic_esf_set_conn, // esf_set_conn
+    iquic_esf_flush_encryption, // esf_flush_encryption
+    IQUIC_TAG_LEN, // esf_tag_len
+#else
     .esf_encrypt_packet  = iquic_esf_encrypt_packet,
     .esf_decrypt_packet  = iquic_esf_decrypt_packet,
     .esf_flush_encryption= iquic_esf_flush_encryption,
@@ -2762,12 +2850,30 @@ const struct enc_session_funcs_common lsquic_enc_session_common_ietf_v1 =
     .esf_alg_keysize     = iquic_esf_alg_keysize,
     .esf_is_sess_resume_enabled = iquic_esf_sess_resume_enabled,
     .esf_set_conn        = iquic_esf_set_conn,
+#endif
 };
 
 
 static
 const struct enc_session_funcs_common lsquic_enc_session_common_ietf_v1_no_flush =
 {
+#if 1 // hezhiwen
+    iquic_esf_global_init, // esf_global_init
+    iquic_esf_global_cleanup, // esf_global_cleanup
+    iquic_esf_cipher, // esf_cipher
+    iquic_esf_keysize, // esf_keysize
+    iquic_esf_alg_keysize, // esf_alg_keysize
+    iquic_esf_get_sni, // esf_get_sni
+    iquic_esf_encrypt_packet, // esf_encrypt_packet
+    iquic_esf_decrypt_packet, // esf_decrypt_packet
+    iquic_esf_get_server_cert_chain, // esf_get_server_cert_chain
+    NULL, // esf_verify_reset_token
+    NULL, // esf_did_sess_resume_succeed
+    iquic_esf_sess_resume_enabled, // esf_is_sess_resume_enabled
+    iquic_esf_set_conn, // esf_set_conn
+    NULL, // esf_flush_encryption
+    IQUIC_TAG_LEN, // esf_tag_len
+#else
     .esf_encrypt_packet  = iquic_esf_encrypt_packet,
     .esf_decrypt_packet  = iquic_esf_decrypt_packet,
     .esf_global_cleanup  = iquic_esf_global_cleanup,
@@ -2781,6 +2887,7 @@ const struct enc_session_funcs_common lsquic_enc_session_common_ietf_v1_no_flush
     .esf_alg_keysize     = iquic_esf_alg_keysize,
     .esf_is_sess_resume_enabled = iquic_esf_sess_resume_enabled,
     .esf_set_conn        = iquic_esf_set_conn,
+#endif
 };
 
 
@@ -3101,11 +3208,19 @@ cry_sm_send_alert (SSL *ssl, enum ssl_encryption_level_t level, uint8_t alert)
 
 static const SSL_QUIC_METHOD cry_quic_method =
 {
+#if 1 // hezhiwen
+    cry_sm_set_read_secret, // set_read_secret
+    cry_sm_set_write_secret, // set_write_secret
+    cry_sm_write_message, // add_handshake_data
+    cry_sm_flush_flight, // flush_flight
+    cry_sm_send_alert, // send_alert
+#else
     .set_read_secret        = cry_sm_set_read_secret,
     .set_write_secret       = cry_sm_set_write_secret,
     .add_handshake_data     = cry_sm_write_message,
     .flush_flight           = cry_sm_flush_flight,
     .send_alert             = cry_sm_send_alert,
+#endif
 };
 
 
@@ -3151,10 +3266,17 @@ chsk_ietf_on_close (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 
 
 static const char *const ihs2str[] = {
+#if 1 // hezhiwen
+    "want read",
+    "want write",
+    "want rw",
+    "stop",
+#else
     [IHS_WANT_READ]  = "want read",
     [IHS_WANT_WRITE] = "want write",
     [IHS_WANT_RW]    = "want rw",
     [IHS_STOP]       = "stop",
+#endif
 };
 
 
@@ -3284,9 +3406,15 @@ maybe_write_from_fral (struct enc_sess_iquic *enc_sess,
     enum enc_level enc_level = enc_sess->esi_cryst_if->csi_enc_level(stream);
     struct frab_list *const fral = &enc_sess->esi_frals[enc_level];
     struct lsquic_reader reader = {
+    #if 1 // hezhiwen
+        lsquic_frab_list_read,
+        lsquic_frab_list_size,
+        fral,
+    #else
         .lsqr_read  = lsquic_frab_list_read,
         .lsqr_size  = lsquic_frab_list_size,
         .lsqr_ctx   = fral,
+    #endif
     };
     ssize_t nw;
 
@@ -3325,19 +3453,53 @@ chsk_ietf_on_write (struct lsquic_stream *stream, lsquic_stream_ctx_t *ctx)
 
 const struct lsquic_stream_if lsquic_cry_sm_if =
 {
+#if 1 // hezhiwen
+    NULL, // on_new_conn
+    NULL, // on_goaway_received
+    NULL, // on_conn_closed
+    chsk_ietf_on_new_stream, // on_new_stream
+    chsk_ietf_on_read, // on_read
+    chsk_ietf_on_write, // on_write
+    chsk_ietf_on_close, // on_close
+    NULL, // on_dg_write
+    NULL, // on_datagram
+    NULL, // on_hsk_done
+    NULL, // on_new_token
+    NULL, // on_sess_resume_info
+    NULL, // on_reset
+    NULL, // on_conncloseframe_received
+#else
     .on_new_stream = chsk_ietf_on_new_stream,
     .on_read       = chsk_ietf_on_read,
     .on_write      = chsk_ietf_on_write,
     .on_close      = chsk_ietf_on_close,
+#endif
 };
 
 
 const struct lsquic_stream_if lsquic_mini_cry_sm_if =
 {
+#if 1 // hezhiwen
+    NULL, // on_new_conn
+    NULL, // on_goaway_received
+    NULL, // on_conn_closed
+    shsk_ietf_on_new_stream, // on_new_stream
+    chsk_ietf_on_read, // on_read
+    chsk_ietf_on_write, // on_write
+    chsk_ietf_on_close, // on_close
+    NULL, // on_dg_write
+    NULL, // on_datagram
+    NULL, // on_hsk_done
+    NULL, // on_new_token
+    NULL, // on_sess_resume_info
+    NULL, // on_reset
+    NULL, // on_conncloseframe_received
+#else
     .on_new_stream = shsk_ietf_on_new_stream,
     .on_read       = chsk_ietf_on_read,
     .on_write      = chsk_ietf_on_write,
     .on_close      = chsk_ietf_on_close,
+#endif
 };
 
 

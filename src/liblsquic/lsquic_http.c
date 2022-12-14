@@ -66,8 +66,12 @@ lsquic_http_parse_pfv (const char *pfv, size_t pfv_sz,
         char *scratch_buf, size_t scratch_sz)
 {
     int ret;
+#if 1 // hezhiwen
+    struct parse_pfv_ctx pfv_ctx = { flags ? *flags : 0, ehp, };
+#else
     struct parse_pfv_ctx pfv_ctx = { .ppc_flags = flags ? *flags : 0,
                                      .ppc_ehp   = ehp, };
+#endif
 
     ret = ls_sf_parse(LS_SF_TLT_DICTIONARY, pfv, pfv_sz, parse_pfv, &pfv_ctx,
                                                     scratch_buf, scratch_sz);

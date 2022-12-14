@@ -34,6 +34,25 @@ lsquic_alarmset_init_alarm (lsquic_alarmset_t *alset, enum alarm_id al_id,
 
 const char *const lsquic_alid2str[] =
 {
+#if 1 // hezhiwen
+    "HANDSHAKE",
+    "RETX_INIT",
+    "RETX_HSK",
+    "RETX_APP",
+    "PING",
+    "MTU_PROBE",
+    "IDLE",
+    "ACK_APP",
+    "RET_CIDS",
+    "CID_THROT",
+    "PATH_CHAL_0",
+    "PATH_CHAL_1",
+    "PATH_CHAL_2",
+    "PATH_CHAL_3",
+    "SESS_TICKET",
+    "BLOCKED_KA",
+    "PACK_TOL",
+#else
     [AL_HANDSHAKE]  =  "HANDSHAKE",
     [AL_RETX_INIT]  =  "RETX_INIT",
     [AL_RETX_HSK]   =  "RETX_HSK",
@@ -51,6 +70,7 @@ const char *const lsquic_alid2str[] =
     [AL_BLOCKED_KA] = "BLOCKED_KA",
     [AL_MTU_PROBE]  = "MTU_PROBE",
     [AL_PACK_TOL]   = "PACK_TOL",
+#endif
 };
 
 

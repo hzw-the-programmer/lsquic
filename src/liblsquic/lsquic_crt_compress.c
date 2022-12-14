@@ -704,6 +704,9 @@ lsquic_decompress_certs (const unsigned char *in, const unsigned char *in_end,
     size_t count = *out_certs_count;
     cert_entry_t *entries;
     z_stream z;
+#if 1 // hezhiwen
+    uint32_t cert_len;
+#endif
 
     assert(*out_certs_count > 0 && *out_certs_count < 10000
             && "Call lsquic_get_certs_count() to get right certificates count first and make enough room for out_certs_count");
@@ -779,7 +782,9 @@ lsquic_decompress_certs (const unsigned char *in, const unsigned char *in_end,
               if (uncompressed_size < sizeof(uint32_t))
                   goto err;
               lsquic_str_d(out_certs[i]);
+            #if 0 // hezhiwen
               uint32_t cert_len;
+            #endif
               memcpy(&cert_len, uncompressed_data, sizeof(cert_len));
               uncompressed_data += sizeof(uint32_t);
               uncompressed_size -= sizeof(uint32_t);

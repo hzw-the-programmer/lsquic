@@ -89,6 +89,18 @@ error_di_readable_bytes (struct data_in *data_in, uint64_t read_offset)
 
 
 static const struct data_in_iface di_if_error = {
+#if 1 // hezhiwen
+    error_di_destroy, // di_destroy
+    error_di_empty, // di_empty
+    error_di_insert_frame, // di_insert_frame
+    error_di_get_frame, // di_get_frame
+    error_di_frame_done, // di_frame_done
+    error_di_switch_impl, // di_switch_impl
+    error_di_mem_used, // di_mem_used
+    error_di_dump_state, // di_dump_state
+    error_di_readable_bytes, // di_readable_bytes
+    0, // di_own_on_ok
+#else
     .di_destroy      = error_di_destroy,
     .di_dump_state   = error_di_dump_state,
     .di_empty        = error_di_empty,
@@ -100,12 +112,17 @@ static const struct data_in_iface di_if_error = {
     .di_readable_bytes
                      = error_di_readable_bytes,
     .di_switch_impl  = error_di_switch_impl,
+#endif
 };
 
 
 static const struct data_in error_data_in = {
+#if 1 // hezhiwen
+    &di_if_error, 0,
+#else
     .di_if    = &di_if_error,
     .di_flags = 0,
+#endif
 };
 
 

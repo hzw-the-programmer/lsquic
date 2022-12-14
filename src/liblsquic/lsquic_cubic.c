@@ -282,6 +282,21 @@ lsquic_cubic_pacing_rate (void *cong_ctl, int in_recovery)
 
 const struct cong_ctl_if lsquic_cong_cubic_if =
 {
+#if 1 // hezhiwen
+    lsquic_cubic_init, // cci_init
+    lsquic_cubic_reinit, // cci_reinit
+    lsquic_cubic_ack, // cci_ack
+    lsquic_cubic_loss, // cci_loss
+    NULL, // cci_begin_ack
+    NULL, // cci_end_ack
+    NULL, // cci_sent
+    NULL, // cci_lost
+    lsquic_cubic_timeout, // cci_timeout
+    lsquic_cubic_was_quiet, // cci_was_quiet
+    lsquic_cubic_get_cwnd, // cci_get_cwnd
+    lsquic_cubic_pacing_rate, // cci_pacing_rate
+    lsquic_cubic_cleanup, // cci_cleanup
+#else
     .cci_ack           = lsquic_cubic_ack,
     .cci_cleanup       = lsquic_cubic_cleanup,
     .cci_get_cwnd      = lsquic_cubic_get_cwnd,
@@ -291,4 +306,5 @@ const struct cong_ctl_if lsquic_cong_cubic_if =
     .cci_reinit        = lsquic_cubic_reinit,
     .cci_timeout       = lsquic_cubic_timeout,
     .cci_was_quiet     = lsquic_cubic_was_quiet,
+#endif
 };

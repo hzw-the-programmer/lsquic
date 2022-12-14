@@ -75,7 +75,26 @@
  * called.  This is a workaround.
  */
 static struct conn_cid_elem dummy_cce;
+#if 1 // hezhiwen
+static const struct lsquic_conn dummy_lsquic_conn = {
+    NULL, // cn_enc_session
+    NULL, // cn_esf_c
+    {0}, // cn_esf
+    {0}, // cn_next_closed_conn
+    {0}, // cn_next_new_full
+    {0}, // cn_next_ticked
+    {0}, // cn_next_out
+    {0}, // cn_next_pr
+    NULL, // cn_if
+    NULL, // cn_pf
+    NULL, // cn_attq_elem
+    0, // cn_last_sent
+    0, // cn_last_ticked
+    &dummy_cce, // cn_cces
+};
+#else
 static const struct lsquic_conn dummy_lsquic_conn = { .cn_cces = &dummy_cce, };
+#endif
 static const struct lsquic_conn *const lconn = &dummy_lsquic_conn;
 
 static int s_ccrt_idx;
@@ -874,9 +893,14 @@ static enc_session_t *
 lsquic_enc_session_create_server (struct lsquic_conn *lconn, lsquic_cid_t cid,
                         struct lsquic_engine_public *enpub)
 {
+#if 1 // hezhiwen
+    struct lsquic_enc_session *enc_session;
+#endif
     fiu_return_on("handshake/new_enc_session", NULL);
 
+#if 0 // hezhiwen
     struct lsquic_enc_session *enc_session;
+#endif
 
     enc_session = calloc(1, sizeof(*enc_session));
     if (!enc_session)
@@ -942,12 +966,19 @@ lsquic_enc_session_destroy (enc_session_t *enc_session_p)
     struct lsquic_enc_session *const enc_session = enc_session_p;
     enum gel gel;
     unsigned i;
+#if 1 // hezhiwen
+    hs_ctx_t *hs_ctx;
+#endif
 
     if (!enc_session)
         return ;
 
+#if 1 // hezhiwen
+    hs_ctx = &enc_session->hs_ctx;
+#else
     hs_ctx_t *hs_ctx = &enc_session->hs_ctx;
-    
+#endif
+
     lsquic_str_d(&hs_ctx->sni);
     lsquic_str_d(&hs_ctx->ccs);
     lsquic_str_d(&hs_ctx->ccrt);
@@ -1810,10 +1841,14 @@ get_valid_scfg (const struct lsquic_enc_session *enc_session,
     time_t t = time(NULL);
     unsigned int real_len;
     SCFG_info_t *temp_scfg;
+    SCFG_t *tmp_scfg_copy = NULL;
     void *scfg_ptr;
     int ret;
     unsigned msg_len, server_config_sz;
     struct message_writer mw;
+#if 1 // hezhiwen
+    void *scfg_key;
+#endif
 
     if (enpub->enp_server_config->lsc_scfg && (enpub->enp_server_config->lsc_scfg->info.expy > (uint64_t)t))
         return enpub->enp_server_config;
@@ -1884,15 +1919,24 @@ get_valid_scfg (const struct lsquic_enc_session *enc_session,
 
 //     /* TODO: will shi_delete call free to release the buffer? */
 //     shi->shi_delete(shi_ctx, SERVER_SCFG_KEY, SERVER_SCFG_KEY_SIZE);
-    shi->shi_insert(shi_ctx, SERVER_SCFG_KEY, SERVER_SCFG_KEY_SIZE,
+#if 1 // hezhiwen
+    scfg_key = strdup(SERVER_SCFG_KEY);
+#else
+    void *scfg_key = strdup(SERVER_SCFG_KEY);
+#endif
+    shi->shi_insert(shi_ctx, scfg_key, SERVER_SCFG_KEY_SIZE,
             enpub->enp_server_config->lsc_scfg, server_config_sz, t + settings->es_sttl);
 
-    ret = shi->shi_lookup(shi_ctx, SERVER_SCFG_KEY, SERVER_SCFG_KEY_SIZE,
+    ret = shi->shi_lookup(shi_ctx, scfg_key, SERVER_SCFG_KEY_SIZE,
                           &scfg_ptr, &real_len);
     if (ret == 1)
     {
-        free(enpub->enp_server_config->lsc_scfg);
-        enpub->enp_server_config->lsc_scfg = scfg_ptr;
+        tmp_scfg_copy = scfg_ptr;
+        if (tmp_scfg_copy != enpub->enp_server_config->lsc_scfg)
+        {
+            free(enpub->enp_server_config->lsc_scfg);
+            enpub->enp_server_config->lsc_scfg = tmp_scfg_copy;
+        }
     }
     else
     {
@@ -1996,11 +2040,28 @@ gen_rej1_data (struct lsquic_enc_session *enc_session, uint8_t *data,
     size_t msg_len;
     struct message_writer mw;
     uint64_t sttl;
+#if 1 // hezhiwen
+    size_t prof_len;
+#ifndef WIN32
+    char prof_buf[prof_len];
+#else
+    char *prof_buf;
+#endif
+    int s;
+#endif
 
     rsa_priv_key = SSL_CTX_get0_privatekey(ctx);
     if (!rsa_priv_key)
         return -1;
 
+#if 1 // hezhiwen
+    prof_len = (size_t) EVP_PKEY_size(rsa_priv_key);
+#ifdef WIN32
+    prof_buf = _malloca(prof_len);
+    if (!prof_buf)
+        return -1;
+#endif
+#else
     size_t prof_len = (size_t) EVP_PKEY_size(rsa_priv_key);
 #ifndef WIN32
     char prof_buf[prof_len];
@@ -2008,6 +2069,7 @@ gen_rej1_data (struct lsquic_enc_session *enc_session, uint8_t *data,
     char *prof_buf = _malloca(prof_len);
     if (!prof_buf)
         return -1;
+#endif
 #endif
 
     if (hs_ctx->ccert)
@@ -2040,10 +2102,17 @@ gen_rej1_data (struct lsquic_enc_session *enc_session, uint8_t *data,
 
     LSQ_DEBUG("gQUIC rej1 data");
     LSQ_DEBUG("gQUIC NOT enabled");
+#if 1 // hezhiwen
+    s = lsquic_gen_prof((const uint8_t *)lsquic_str_cstr(&enc_session->chlo),
+         (size_t)lsquic_str_len(&enc_session->chlo),
+         scfg_data, scfg_len,
+         rsa_priv_key, (uint8_t *)prof_buf, &prof_len);
+#else
     const int s = lsquic_gen_prof((const uint8_t *)lsquic_str_cstr(&enc_session->chlo),
          (size_t)lsquic_str_len(&enc_session->chlo),
          scfg_data, scfg_len,
          rsa_priv_key, (uint8_t *)prof_buf, &prof_len);
+#endif
     if (s != 0)
     {
         LSQ_INFO("could not generate server proof, code %d", s);
@@ -2919,13 +2988,22 @@ lsquic_verify_stk0 (const struct lsquic_enc_session *enc_session,
     unsigned char *const stks = (unsigned char *) lsquic_str_buf(stk);
     unsigned char stk_out[STK_LENGTH];
     size_t out_len = STK_LENGTH;
+#if 1 // hezhiwen
+    int ret;
+#endif
 
     if (lsquic_str_len(stk) < STK_LENGTH)
         return HFR_SRC_ADDR_TOKEN_INVALID;
 
+#if 1 // hezhiwen
+    ret = lsquic_aes_aead_dec(&server_config->lsc_stk_ctx, NULL, 0,
+                           stks + STK_LENGTH - 12, 12, stks,
+                           STK_LENGTH - 12, stk_out, &out_len);
+#else
     int ret = lsquic_aes_aead_dec(&server_config->lsc_stk_ctx, NULL, 0,
                            stks + STK_LENGTH - 12, 12, stks,
                            STK_LENGTH - 12, stk_out, &out_len);
+#endif
     if (ret != 0)
     {
         LSQ_DEBUG("***lsquic_verify_stk decrypted failed.");
@@ -3861,6 +3939,23 @@ const
 #endif
 struct enc_session_funcs_common lsquic_enc_session_common_gquic_1 =
 {
+#if 1 // hezhiwen
+    lsquic_handshake_init, // esf_global_init
+    lsquic_handshake_cleanup, // esf_global_cleanup
+    lsquic_enc_session_cipher, // esf_cipher
+    lsquic_enc_session_keysize, // esf_keysize
+    lsquic_enc_session_alg_keysize, // esf_alg_keysize
+    lsquic_enc_session_get_sni, // esf_get_sni
+    gquic_encrypt_packet, // esf_encrypt_packet
+    gquic_decrypt_packet, // esf_decrypt_packet
+    lsquic_enc_session_get_server_cert_chain, // esf_get_server_cert_chain
+    lsquic_enc_session_verify_reset_token, // esf_verify_reset_token
+    lsquic_enc_session_did_sess_resume_succeed, // esf_did_sess_resume_succeed
+    lsquic_enc_session_is_sess_resume_enabled, // esf_is_sess_resume_enabled
+    gquic_esf_set_conn, // esf_set_conn
+    NULL, // esf_flush_encryption
+    GQUIC_PACKET_HASH_SZ, // esf_tag_len
+#else
     .esf_global_init    = lsquic_handshake_init,
     .esf_global_cleanup = lsquic_handshake_cleanup,
     .esf_cipher = lsquic_enc_session_cipher,
@@ -3875,6 +3970,7 @@ struct enc_session_funcs_common lsquic_enc_session_common_gquic_1 =
     .esf_did_sess_resume_succeed = lsquic_enc_session_did_sess_resume_succeed,
     .esf_is_sess_resume_enabled = lsquic_enc_session_is_sess_resume_enabled,
     .esf_set_conn        = gquic_esf_set_conn,
+#endif
 };
 
 
@@ -3945,28 +4041,49 @@ gquic2_apply_hp (struct lsquic_enc_session *enc_session,
 
 static const enum gel hety2gel[] =
 {
+#if 1 // hezhiwen
+    GEL_FORW,
+    0,
+    GEL_CLEAR,
+    0,
+    GEL_CLEAR,
+    GEL_EARLY,
+#else
     [HETY_NOT_SET]   = GEL_FORW,
     [HETY_VERNEG]    = 0,
     [HETY_INITIAL]   = GEL_CLEAR,
     [HETY_RETRY]     = 0,
     [HETY_HANDSHAKE] = GEL_CLEAR,
     [HETY_0RTT]      = GEL_EARLY,
+#endif
 };
 
 
 static const char *const gel2str[] =
 {
+#if 1 // hezhiwen
+    "clear",
+    "early",
+    "forw-secure",
+#else
     [GEL_CLEAR] = "clear",
     [GEL_EARLY] = "early",
     [GEL_FORW]  = "forw-secure",
+#endif
 };
 
 
 static const enum enc_level gel2el[] =
 {
+#if 1 // hezhiwen
+    ENC_LEV_CLEAR,
+    ENC_LEV_EARLY,
+    ENC_LEV_FORW,
+#else
     [GEL_CLEAR] = ENC_LEV_CLEAR,
     [GEL_EARLY] = ENC_LEV_EARLY,
     [GEL_FORW]  = ENC_LEV_FORW,
+#endif
 };
 
 
@@ -4173,7 +4290,7 @@ gquic2_esf_decrypt_packet (enc_session_t *enc_session_p,
     lsquic_packno_t packno;
     size_t out_sz;
     enum dec_packin dec_packin;
-    const size_t dst_sz = packet_in->pi_data_sz - IQUIC_TAG_LEN;
+    const size_t dst_sz = packet_in->pi_data_sz;
     char errbuf[ERR_ERROR_STRING_BUF_LEN];
 
     dst = lsquic_mm_get_packet_in_buf(&enpub->enp_mm, dst_sz);
@@ -4264,10 +4381,11 @@ gquic2_esf_decrypt_packet (enc_session_t *enc_session_p,
     }
 
     /* Bits 2 and 3 are not set and don't need to be checked in gQUIC */
+
+    packet_in->pi_data_sz = packet_in->pi_header_sz + out_sz;
     if (packet_in->pi_flags & PI_OWN_DATA)
         lsquic_mm_put_packet_in_buf(&enpub->enp_mm, packet_in->pi_data,
                                                         packet_in->pi_data_sz);
-    packet_in->pi_data_sz = packet_in->pi_header_sz + out_sz;
     packet_in->pi_data = dst;
     packet_in->pi_flags |= PI_OWN_DATA | PI_DECRYPTED
                         | (gel2el[gel] << PIBIT_ENC_LEV_SHIFT);
@@ -4293,6 +4411,23 @@ const
 /* Q050 and later */
 struct enc_session_funcs_common lsquic_enc_session_common_gquic_2 =
 {
+#if 1 // hezhiwen
+    lsquic_handshake_init, // esf_global_init
+    lsquic_handshake_cleanup, // esf_global_cleanup
+    lsquic_enc_session_cipher, // esf_cipher
+    lsquic_enc_session_keysize, // esf_keysize
+    lsquic_enc_session_alg_keysize, // esf_alg_keysize
+    lsquic_enc_session_get_sni, // esf_get_sni
+    gquic2_esf_encrypt_packet, // esf_encrypt_packet
+    gquic2_esf_decrypt_packet, // esf_decrypt_packet
+    lsquic_enc_session_get_server_cert_chain, // esf_get_server_cert_chain
+    lsquic_enc_session_verify_reset_token, // esf_verify_reset_token
+    lsquic_enc_session_did_sess_resume_succeed, // esf_did_sess_resume_succeed
+    lsquic_enc_session_is_sess_resume_enabled, // esf_is_sess_resume_enabled
+    gquic_esf_set_conn, // esf_set_conn
+    NULL, // esf_flush_encryption
+    IQUIC_TAG_LEN, // esf_tag_len
+#else
     .esf_get_sni                =  lsquic_enc_session_get_sni,
     .esf_global_init            =  lsquic_handshake_init,
     .esf_global_cleanup         =  lsquic_handshake_cleanup,
@@ -4308,6 +4443,7 @@ struct enc_session_funcs_common lsquic_enc_session_common_gquic_2 =
     .esf_encrypt_packet         =  gquic2_esf_encrypt_packet,
     .esf_decrypt_packet         =  gquic2_esf_decrypt_packet,
     .esf_tag_len                =  IQUIC_TAG_LEN,
+#endif
 };
 
 
@@ -4316,6 +4452,39 @@ const
 #endif
 struct enc_session_funcs_gquic lsquic_enc_session_gquic_gquic_1 =
 {
+#if 1 // hezhiwen
+#if LSQUIC_KEEP_ENC_SESS_HISTORY
+    lsquic_get_enc_hist, // esf_get_hist
+#endif
+    lsquic_enc_session_destroy, // esf_destroy
+    lsquic_enc_session_is_hsk_done, // esf_is_hsk_done
+    lsquic_enc_session_get_peer_setting, // esf_get_peer_setting
+    lsquic_enc_session_get_peer_option, // esf_get_peer_option
+    lsquic_enc_session_create_server, // esf_create_server
+    lsquic_enc_session_handle_chlo, // esf_handle_chlo
+    NULL, // esf_hsk_destroy
+#ifndef NDEBUG
+    determine_diversification_key, // esf_determine_diversification_key
+#endif
+    lsquic_enc_session_get_ua, // esf_get_ua
+    lsquic_enc_session_have_key_gt_one, // esf_have_key_gt_one
+#ifndef NDEBUG
+    lsquic_enc_session_have_key, // esf_have_key
+    lsquic_enc_session_set_have_key, // esf_set_have_key
+    lsquic_enc_session_get_enc_key_i, // esf_get_enc_key_i
+    lsquic_enc_session_get_dec_key_i, // esf_get_dec_key_i
+    lsquic_enc_session_get_enc_key_nonce_i, // esf_get_enc_key_nonce_i
+    lsquic_enc_session_get_dec_key_nonce_i, // esf_get_dec_key_nonce_i
+    lsquic_enc_session_get_enc_key_nonce_f, // esf_get_enc_key_nonce_f
+    lsquic_enc_session_get_dec_key_nonce_f, // esf_get_dec_key_nonce_f
+#endif
+    lsquic_enc_session_create_client, // esf_create_client
+    lsquic_enc_session_gen_chlo, // esf_gen_chlo
+    lsquic_enc_session_handle_chlo_reply, // esf_handle_chlo_reply
+    lsquic_enc_session_mem_used, // esf_mem_used
+    maybe_dispatch_sess_resume, // esf_maybe_dispatch_sess_resume
+    lsquic_enc_session_reset_cid, // esf_reset_cid
+#else
 #if LSQUIC_KEEP_ENC_SESS_HISTORY
     .esf_get_hist       = lsquic_get_enc_hist,
 #endif
@@ -4344,6 +4513,7 @@ struct enc_session_funcs_gquic lsquic_enc_session_gquic_gquic_1 =
     .esf_mem_used = lsquic_enc_session_mem_used,
     .esf_maybe_dispatch_sess_resume = maybe_dispatch_sess_resume,
     .esf_reset_cid = lsquic_enc_session_reset_cid,
+#endif
 };
 
 

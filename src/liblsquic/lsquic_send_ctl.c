@@ -86,10 +86,17 @@ enum retx_mode {
 
 
 static const char *const retx2str[] = {
+#if 1 // hezhiwen
+    "RETX_MODE_HANDSHAKE", // RETX_MODE_HANDSHAKE
+    "RETX_MODE_LOSS", // RETX_MODE_LOSS
+    "RETX_MODE_TLP", // RETX_MODE_TLP
+    "RETX_MODE_RTO", // RETX_MODE_RTO
+#else
     [RETX_MODE_HANDSHAKE] = "RETX_MODE_HANDSHAKE",
     [RETX_MODE_LOSS]      = "RETX_MODE_LOSS",
     [RETX_MODE_TLP]       = "RETX_MODE_TLP",
     [RETX_MODE_RTO]       = "RETX_MODE_RTO",
+#endif
 };
 
 #ifdef NDEBUG
@@ -431,10 +438,17 @@ static lsquic_time_t
 calculate_packet_rto (lsquic_send_ctl_t *ctl)
 {
     lsquic_time_t delay;
+#if 1 // hezhiwen
+    unsigned exp;
+#endif
 
     delay = get_retx_delay(&ctl->sc_conn_pub->rtt_stats);
 
+#if 1 // hezhiwen
+    exp = ctl->sc_n_consec_rtos;
+#else
     unsigned exp = ctl->sc_n_consec_rtos;
+#endif
     if (exp > MAX_RTO_BACKOFFS)
         exp = MAX_RTO_BACKOFFS;
 
@@ -1737,9 +1751,13 @@ send_ctl_expire (struct lsquic_send_ctl *ctl, enum packnum_space pns,
     lsquic_packet_out_t *packet_out, *next;
     int n_resubmitted;
     static const char *const filter_type2str[] = {
+    #if 1 // hezhiwen
+        "all", "handshake", "last",
+    #else
         [EXFI_ALL] = "all",
         [EXFI_HSK] = "handshake",
         [EXFI_LAST] = "last",
+    #endif
     };
 
     switch (filter)
@@ -2163,9 +2181,15 @@ send_ctl_allocate_packet (struct lsquic_send_ctl *ctl, enum packno_bits bits,
 {
     static const enum header_type pns2hety[] =
     {
+    #if 1 // hezhiwen
+        HETY_INITIAL,
+        HETY_HANDSHAKE,
+        HETY_NOT_SET,
+    #else
         [PNS_INIT]  = HETY_INITIAL,
         [PNS_HSK]   = HETY_HANDSHAKE,
         [PNS_APP]   = HETY_NOT_SET,
+    #endif
     };
     lsquic_packet_out_t *packet_out;
 
@@ -3061,9 +3085,15 @@ lsquic_send_ctl_schedule_buffered (lsquic_send_ctl_t *ctl,
     lsquic_packet_out_t *packet_out;
     unsigned used;
 
+#if 0 // hezhiwen
     assert(lsquic_send_ctl_schedule_stream_packets_immediately(ctl));
+#endif
     const enum packno_bits bits = lsquic_send_ctl_calc_packno_bits(ctl);
     const unsigned need = pf->pf_packno_bits2len(bits);
+
+#if 1 // hezhiwen
+    assert(lsquic_send_ctl_schedule_stream_packets_immediately(ctl));
+#endif
 
     while ((packet_out = TAILQ_FIRST(&packet_q->bpq_packets)) &&
                                             lsquic_send_ctl_can_send(ctl))
@@ -3148,6 +3178,16 @@ lsquic_send_ctl_mem_used (const struct lsquic_send_ctl *ctl)
     const lsquic_packet_out_t *packet_out;
     unsigned n;
     size_t size;
+#if 1 // hezhiwen
+    struct lsquic_packets_tailq queues[7] = {0};
+    queues[0] = ctl->sc_scheduled_packets;
+    queues[1] = ctl->sc_unacked_packets[PNS_INIT];
+    queues[2] = ctl->sc_unacked_packets[PNS_HSK];
+    queues[3] = ctl->sc_unacked_packets[PNS_APP];
+    queues[4] = ctl->sc_lost_packets;
+    queues[5] = ctl->sc_buffered_packets[0].bpq_packets;
+    queues[6] = ctl->sc_buffered_packets[1].bpq_packets;
+#else
     const struct lsquic_packets_tailq queues[] = {
         ctl->sc_scheduled_packets,
         ctl->sc_unacked_packets[PNS_INIT],
@@ -3157,6 +3197,7 @@ lsquic_send_ctl_mem_used (const struct lsquic_send_ctl *ctl)
         ctl->sc_buffered_packets[0].bpq_packets,
         ctl->sc_buffered_packets[1].bpq_packets,
     };
+#endif
 
     size = sizeof(*ctl);
 

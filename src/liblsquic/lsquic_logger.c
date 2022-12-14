@@ -44,17 +44,69 @@ file_log_buf (void *ctx, const char *buf, size_t len)
 }
 
 static const struct lsquic_logger_if file_logger_if = {
+#if 1 // hezhiwen
+    file_log_buf,
+#else
     .log_buf    = file_log_buf,
+#endif
 };
 
 static const struct lsquic_logger_if null_logger_if = {
+#if 1 // hezhiwen
+    null_log_buf,
+#else
     .log_buf    = null_log_buf,
+#endif
 };
 
 static void *logger_ctx = NULL;
 static const struct lsquic_logger_if *logger_if = &null_logger_if;
 
 enum lsq_log_level lsq_log_levels[N_LSQUIC_LOGGER_MODULES] = {
+#if 1 // hezhiwen
+    LSQ_LOG_WARN, // LSQLM_NOMODULE
+    LSQ_LOG_WARN, // LSQLM_LOGGER
+    LSQ_LOG_WARN, // LSQLM_EVENT
+    LSQ_LOG_WARN, // LSQLM_ENGINE
+    LSQ_LOG_WARN, // LSQLM_CONN
+    LSQ_LOG_WARN, // LSQLM_STREAM
+    LSQ_LOG_WARN, // LSQLM_PARSE
+    LSQ_LOG_WARN, // LSQLM_CFCW
+    LSQ_LOG_WARN, // LSQLM_SFCW
+    LSQ_LOG_WARN, // LSQLM_SENDCTL
+    LSQ_LOG_WARN, // LSQLM_ALARMSET
+    LSQ_LOG_WARN, // LSQLM_CRYPTO
+    LSQ_LOG_WARN, // LSQLM_HANDSHAKE
+    LSQ_LOG_WARN, // LSQLM_HSK_ADAPTER
+    LSQ_LOG_WARN, // LSQLM_BBR
+    LSQ_LOG_WARN, // LSQLM_CUBIC
+    LSQ_LOG_WARN, // LSQLM_ADAPTIVE_CC
+    LSQ_LOG_WARN, // LSQLM_HEADERS
+    LSQ_LOG_WARN, // LSQLM_FRAME_WRITER
+    LSQ_LOG_WARN, // LSQLM_FRAME_READER
+    LSQ_LOG_WARN, // LSQLM_MINI_CONN
+    LSQ_LOG_WARN, // LSQLM_TOKGEN
+    LSQ_LOG_WARN, // LSQLM_ENG_HIST
+    LSQ_LOG_WARN, // LSQLM_SPI
+    LSQ_LOG_WARN, // LSQLM_HPI
+    LSQ_LOG_WARN, // LSQLM_DI
+    LSQ_LOG_WARN, // LSQLM_PRQ
+    LSQ_LOG_WARN, // LSQLM_PACER
+    LSQ_LOG_WARN, // LSQLM_HTTP1X
+    LSQ_LOG_WARN, // LSQLM_QLOG
+    LSQ_LOG_WARN, // LSQLM_TRAPA
+    LSQ_LOG_WARN, // LSQLM_PURGA
+    LSQ_LOG_WARN, // LSQLM_HCSI_READER
+    LSQ_LOG_WARN, // LSQLM_HCSO_WRITER
+    LSQ_LOG_WARN, // LSQLM_QENC_HDL
+    LSQ_LOG_WARN, // LSQLM_QDEC_HDL
+    LSQ_LOG_WARN, // LSQLM_QPACK_ENC
+    LSQ_LOG_WARN, // LSQLM_QPACK_DEC
+    LSQ_LOG_WARN, // LSQLM_PRIO
+    LSQ_LOG_WARN, // LSQLM_BW_SAMPLER
+    LSQ_LOG_WARN, // LSQLM_PACKET_RESIZE
+    LSQ_LOG_WARN, // LSQLM_CONN_STATS
+#else
     [LSQLM_NOMODULE]    = LSQ_LOG_WARN,
     [LSQLM_LOGGER]      = LSQ_LOG_WARN,
     [LSQLM_EVENT]       = LSQ_LOG_WARN,
@@ -97,9 +149,54 @@ enum lsq_log_level lsq_log_levels[N_LSQUIC_LOGGER_MODULES] = {
     [LSQLM_BW_SAMPLER]  = LSQ_LOG_WARN,
     [LSQLM_PACKET_RESIZE] = LSQ_LOG_WARN,
     [LSQLM_CONN_STATS]  = LSQ_LOG_WARN,
+#endif
 };
 
 const char *const lsqlm_to_str[N_LSQUIC_LOGGER_MODULES] = {
+#if 1 // hezhiwen
+    "", // LSQLM_NOMODULE
+    "logger", // LSQLM_LOGGER
+    "event", // LSQLM_EVENT
+    "engine", // LSQLM_ENGINE
+    "conn", // LSQLM_CONN
+    "stream", // LSQLM_STREAM
+    "parse", // LSQLM_PARSE
+    "cfcw", // LSQLM_CFCW
+    "sfcw", // LSQLM_SFCW
+    "sendctl", // LSQLM_SENDCTL
+    "alarmset", // LSQLM_ALARMSET
+    "crypto", // LSQLM_CRYPTO
+    "handshake", // LSQLM_HANDSHAKE
+    "hsk-adapter", // LSQLM_HSK_ADAPTER
+    "bbr", // LSQLM_BBR
+    "cubic", // LSQLM_CUBIC
+    "adaptive-cc", // LSQLM_ADAPTIVE_CC
+    "headers", // LSQLM_HEADERS
+    "frame-writer", // LSQLM_FRAME_WRITER
+    "frame-reader", // LSQLM_FRAME_READER
+    "mini-conn", // LSQLM_MINI_CONN
+    "tokgen", // LSQLM_TOKGEN
+    "eng-hist", // LSQLM_ENG_HIST
+    "spi", // LSQLM_SPI
+    "hpi", // LSQLM_HPI
+    "di", // LSQLM_DI
+    "prq", // LSQLM_PRQ
+    "pacer", // LSQLM_PACER
+    "http1x", // LSQLM_HTTP1X
+    "qlog", // LSQLM_QLOG
+    "trapa", // LSQLM_TRAPA
+    "purga", // LSQLM_PURGA
+    "hcsi-reader", // LSQLM_HCSI_READER
+    "hcso-writer", // LSQLM_HCSO_WRITER
+    "qenc-hdl", // LSQLM_QENC_HDL
+    "qdec-hdl", // LSQLM_QDEC_HDL
+    "qpack-enc", // LSQLM_QPACK_ENC
+    "qpack-dec", // LSQLM_QPACK_DEC
+    "prio", // LSQLM_PRIO
+    "bw-sampler", // LSQLM_BW_SAMPLER
+    "packet-resize", // LSQLM_PACKET_RESIZE
+    "conn-stats", // LSQLM_CONN_STATS
+#else
     [LSQLM_NOMODULE]    = "",
     [LSQLM_LOGGER]      = "logger",
     [LSQLM_EVENT]       = "event",
@@ -142,9 +239,20 @@ const char *const lsqlm_to_str[N_LSQUIC_LOGGER_MODULES] = {
     [LSQLM_BW_SAMPLER]  = "bw-sampler",
     [LSQLM_PACKET_RESIZE] = "packet-resize",
     [LSQLM_CONN_STATS]  = "conn-stats",
+#endif
 };
 
 const char *const lsq_loglevel2str[N_LSQUIC_LOG_LEVELS] = {
+#if 1 // hezhiwen
+    "EMERG", // LSQ_LOG_EMERG
+    "ALERT", // LSQ_LOG_ALERT
+    "CRIT", // LSQ_LOG_CRIT
+    "ERROR", // LSQ_LOG_ERROR
+    "WARN", // LSQ_LOG_WARN
+    "NOTICE", // LSQ_LOG_NOTICE
+    "INFO", // LSQ_LOG_INFO
+    "DEBUG", // LSQ_LOG_DEBUG
+#else
     [LSQ_LOG_ALERT]   =  "ALERT",
     [LSQ_LOG_CRIT]    =  "CRIT",
     [LSQ_LOG_DEBUG]   =  "DEBUG",
@@ -153,6 +261,7 @@ const char *const lsq_loglevel2str[N_LSQUIC_LOG_LEVELS] = {
     [LSQ_LOG_INFO]    =  "INFO",
     [LSQ_LOG_NOTICE]  =  "NOTICE",
     [LSQ_LOG_WARN]    =  "WARN",
+#endif
 };
 
 
@@ -253,6 +362,9 @@ lsquic_logger_log3 (enum lsq_log_level log_level,
     int lb;
     size_t max = MAX_LINE_LEN;
     char buf[MAX_LINE_LEN];
+#if 1 // hezhiwen
+    va_list ap;
+#endif
 
     if (g_llts != LLTS_NONE)
     {
@@ -267,7 +379,9 @@ lsquic_logger_log3 (enum lsq_log_level log_level,
     if (FORMAT_PROBLEM(lb, len, max))
         goto end;
     len += lb;
+#if 0 // hezhiwen
     va_list ap;
+#endif
     va_start(ap, fmt);
     lb = vsnprintf(buf + len, max - len, fmt, ap);
     va_end(ap);
@@ -300,6 +414,9 @@ lsquic_logger_log2 (enum lsq_log_level log_level,
     int lb;
     size_t max = MAX_LINE_LEN;
     char buf[MAX_LINE_LEN];
+#if 1 // hezhiwen
+    va_list ap;
+#endif
 
     if (g_llts != LLTS_NONE)
     {
@@ -314,7 +431,9 @@ lsquic_logger_log2 (enum lsq_log_level log_level,
     if (FORMAT_PROBLEM(lb, len, max))
         goto end;
     len += lb;
+#if 0 // hezhiwen
     va_list ap;
+#endif
     va_start(ap, fmt);
     lb = vsnprintf(buf + len, max - len, fmt, ap);
     va_end(ap);
@@ -346,6 +465,9 @@ lsquic_logger_log1 (enum lsq_log_level log_level,
     int lb;
     size_t max = MAX_LINE_LEN;
     char buf[MAX_LINE_LEN];
+#if 1 // hezhiwen
+    va_list ap;
+#endif
 
     if (g_llts != LLTS_NONE)
     {
@@ -359,7 +481,9 @@ lsquic_logger_log1 (enum lsq_log_level log_level,
     if (FORMAT_PROBLEM(lb, len, max))
         goto end;
     len += lb;
+#if 0 // hezhiwen
     va_list ap;
+#endif
     va_start(ap, fmt);
     lb = vsnprintf(buf + len, max - len, fmt, ap);
     va_end(ap);
@@ -389,6 +513,9 @@ lsquic_logger_log0 (enum lsq_log_level log_level, const char *fmt, ...)
     int lb;
     size_t max = MAX_LINE_LEN;
     char buf[MAX_LINE_LEN];
+#if 1 // hezhiwen
+    va_list ap;
+#endif
 
     if (g_llts != LLTS_NONE)
     {
@@ -402,7 +529,9 @@ lsquic_logger_log0 (enum lsq_log_level log_level, const char *fmt, ...)
     if (FORMAT_PROBLEM(lb, len, max))
         goto end;
     len += lb;
+#if 0 // hezhiwen
     va_list ap;
+#endif
     va_start(ap, fmt);
     lb = vsnprintf(buf + len, max - len, fmt, ap);
     va_end(ap);
@@ -485,18 +614,30 @@ lsquic_logger_lopt (const char *optarg_orig)
     int i;
     for (i = 0; (mod_str = strtok(i ? NULL : optarg, ",")); ++i) {
         char *level_str = strchr(mod_str, '=');
+    #if 1 // hezhiwen
+        enum lsquic_logger_module mod;
+        enum lsq_log_level level;
+    #endif
         if (!level_str) {
             fprintf(stderr, "Invalid module specification `%s'\n", mod_str);
             break;
         }
         *level_str = '\0';
         ++level_str;
+    #if 1 // hezhiwen
+        mod = lsquic_str_to_logger_module(mod_str);
+    #else
         enum lsquic_logger_module mod = lsquic_str_to_logger_module(mod_str);
+    #endif
         if (-1 == (int) mod) {
             fprintf(stderr, "`%s' is not a valid module name\n", mod_str);
             break;
         }
+    #if 1 // hezhiwen
+        level = lsquic_str_to_log_level(level_str);
+    #else
         enum lsq_log_level level = lsquic_str_to_log_level(level_str);
+    #endif
         if (-1 == (int) level) {
             fprintf(stderr, "`%s' is not a valid level\n", level_str);
             break;

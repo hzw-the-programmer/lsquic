@@ -249,8 +249,13 @@ static void
 take_rtt_sample (struct mini_conn *mc, const lsquic_packet_out_t *packet_out,
                  lsquic_time_t now, lsquic_time_t lack_delta)
 {
+#if 1 // hezhiwen
+    lsquic_time_t measured_rtt = now - packet_out->po_sent;
+    assert(packet_out->po_sent);
+#else
     assert(packet_out->po_sent);
     lsquic_time_t measured_rtt = now - packet_out->po_sent;
+#endif
     if (lack_delta < measured_rtt)
     {
         lsquic_rtt_stats_update(&mc->mc_rtt_stats, measured_rtt, lack_delta);
@@ -637,6 +642,35 @@ typedef unsigned (*process_frame_f)(
 
 static process_frame_f const process_frames[N_QUIC_FRAMES] =
 {
+#if 1 // hezhiwen
+    process_invalid_frame, // QUIC_FRAME_INVALID
+    process_stream_frame, // QUIC_FRAME_STREAM
+    process_ack_frame, // QUIC_FRAME_ACK
+    process_padding_frame, // QUIC_FRAME_PADDING
+    process_rst_stream_frame, // QUIC_FRAME_RST_STREAM
+    process_connection_close_frame, // QUIC_FRAME_CONNECTION_CLOSE
+    process_goaway_frame, // QUIC_FRAME_GOAWAY
+    process_window_update_frame, // QUIC_FRAME_WINDOW_UPDATE
+    process_blocked_frame, // QUIC_FRAME_BLOCKED
+    process_stop_waiting_frame, // QUIC_FRAME_STOP_WAITING
+    process_ping_frame, // QUIC_FRAME_PING
+    NULL, // QUIC_FRAME_MAX_DATA
+    NULL, // QUIC_FRAME_MAX_STREAM_DATA
+    NULL, // QUIC_FRAME_MAX_STREAMS
+    NULL, // QUIC_FRAME_STREAM_BLOCKED
+    NULL, // QUIC_FRAME_STREAMS_BLOCKED
+    NULL, // QUIC_FRAME_NEW_CONNECTION_ID
+    NULL, // QUIC_FRAME_STOP_SENDING
+    NULL, // QUIC_FRAME_PATH_CHALLENGE
+    NULL, // QUIC_FRAME_PATH_RESPONSE
+    process_crypto_frame, // QUIC_FRAME_CRYPTO
+    NULL, // QUIC_FRAME_RETIRE_CONNECTION_ID
+    NULL, // QUIC_FRAME_NEW_TOKEN
+    NULL, // QUIC_FRAME_HANDSHAKE_DONE
+    NULL, // QUIC_FRAME_ACK_FREQUENCY
+    NULL, // QUIC_FRAME_TIMESTAMP
+    NULL, // QUIC_FRAME_DATAGRAM
+#else
     [QUIC_FRAME_ACK]                  =  process_ack_frame,
     [QUIC_FRAME_BLOCKED]              =  process_blocked_frame,
     [QUIC_FRAME_CONNECTION_CLOSE]     =  process_connection_close_frame,
@@ -649,6 +683,7 @@ static process_frame_f const process_frames[N_QUIC_FRAMES] =
     [QUIC_FRAME_STOP_WAITING]         =  process_stop_waiting_frame,
     [QUIC_FRAME_STREAM]               =  process_stream_frame,
     [QUIC_FRAME_WINDOW_UPDATE]        =  process_window_update_frame,
+#endif
 };
 
 
@@ -1972,7 +2007,9 @@ mini_conn_ci_packet_not_sent (struct lsquic_conn *lconn,
 static void
 mini_conn_ci_destroy (struct lsquic_conn *lconn)
 {
+#if 0 // hezhiwen
     assert(!(lconn->cn_flags & LSCONN_HASHED));
+#endif
     struct mini_conn *mc = (struct mini_conn *) lconn;
     lsquic_packet_in_t *packet_in;
     mconn_packno_set_t still_deferred = 0, in_flight;
@@ -1980,6 +2017,10 @@ mini_conn_ci_destroy (struct lsquic_conn *lconn)
 #if LSQUIC_RECORD_INORD_HIST
     char inord_str[0x100];
 #endif
+#if 1 // hezhiwen
+    assert(!(lconn->cn_flags & LSCONN_HASHED));
+#endif
+
     while ((packet_in = TAILQ_FIRST(&mc->mc_packets_in)))
     {
         TAILQ_REMOVE(&mc->mc_packets_in, packet_in, pi_next);
@@ -2222,6 +2263,61 @@ mini_conn_ci_get_path (struct lsquic_conn *lconn, const struct sockaddr *sa)
 
 
 static const struct conn_iface mini_conn_iface_standard = {
+#if 1 // hezhiwen
+    mini_conn_ci_tick, // ci_tick
+    mini_conn_ci_packet_in, // ci_packet_in
+    mini_conn_ci_next_packet_to_send, // ci_next_packet_to_send
+    mini_conn_ci_packet_sent, // ci_packet_sent
+    mini_conn_ci_packet_not_sent, // ci_packet_not_sent
+    NULL, // ci_packet_too_large
+    mini_conn_ci_hsk_done, // ci_hsk_done
+    mini_conn_ci_destroy, // ci_destroy
+    mini_conn_ci_is_tickable, // ci_is_tickable
+    mini_conn_ci_next_tick_time, // ci_next_tick_time
+    NULL, // ci_can_write_ack
+    NULL, // ci_write_ack
+#if LSQUIC_CONN_STATS
+    NULL, // ci_get_stats
+    NULL, // ci_log_stats
+#endif
+    mini_conn_ci_client_call_on_new, // ci_client_call_on_new
+    NULL, // ci_status
+    NULL, // ci_n_avail_streams
+    NULL, // ci_n_pending_streams
+    NULL, // ci_cancel_pending_streams
+    NULL, // ci_going_away
+    NULL, // ci_is_push_enabled
+    NULL, // ci_get_stream_by_id
+    mini_conn_ci_get_engine, // ci_get_engine
+    NULL, // ci_make_stream
+    NULL, // ci_abort
+    NULL, // ci_retire_cid
+    NULL, // ci_close
+    NULL, // ci_stateless_reset
+    NULL, // ci_crypto_keysize
+    NULL, // ci_crypto_alg_keysize
+    NULL, // ci_crypto_ver
+    NULL, // ci_crypto_cipher
+    NULL, // ci_push_stream
+    mini_conn_ci_internal_error, // ci_internal_error
+    mini_conn_ci_abort_error, // ci_abort_error
+    mini_conn_ci_tls_alert, // ci_tls_alert
+    NULL, // ci_drain_time
+    NULL, // ci_report_live
+    mini_conn_ci_get_path, // ci_get_path
+    mini_conn_ci_record_addrs, // ci_record_addrs
+    NULL, // ci_get_log_cid
+    NULL, // ci_drop_crypto_streams
+    NULL, // ci_count_garbage
+    NULL, // ci_mtu_probe_acked
+    NULL, // ci_retx_timeout
+    NULL, // ci_ack_snapshot
+    NULL, // ci_ack_rollback
+    NULL, // ci_want_datagram_write
+    NULL, // ci_set_min_datagram_size
+    NULL, // ci_get_min_datagram_size
+    NULL, // ci_early_data_failed
+#else
     .ci_abort_error          =  mini_conn_ci_abort_error,
     .ci_client_call_on_new   =  mini_conn_ci_client_call_on_new,
     .ci_destroy              =  mini_conn_ci_destroy,
@@ -2238,10 +2334,66 @@ static const struct conn_iface mini_conn_iface_standard = {
     .ci_record_addrs         =  mini_conn_ci_record_addrs,
     .ci_tick                 =  mini_conn_ci_tick,
     .ci_tls_alert            =  mini_conn_ci_tls_alert,
+#endif
 };
 
 
 static const struct conn_iface mini_conn_iface_standard_Q050 = {
+#if 1 // hezhiwen
+    mini_conn_ci_tick, // ci_tick
+    mini_conn_ci_Q050_packet_in, // ci_packet_in
+    mini_conn_ci_next_packet_to_send, // ci_next_packet_to_send
+    mini_conn_ci_packet_sent, // ci_packet_sent
+    mini_conn_ci_packet_not_sent, // ci_packet_not_sent
+    NULL, // ci_packet_too_large
+    mini_conn_ci_hsk_done, // ci_hsk_done
+    mini_conn_ci_destroy, // ci_destroy
+    mini_conn_ci_is_tickable, // ci_is_tickable
+    mini_conn_ci_next_tick_time, // ci_next_tick_time
+    NULL, // ci_can_write_ack
+    NULL, // ci_write_ack
+#if LSQUIC_CONN_STATS
+    NULL, // ci_get_stats
+    NULL, // ci_log_stats
+#endif
+    mini_conn_ci_client_call_on_new, // ci_client_call_on_new
+    NULL, // ci_status
+    NULL, // ci_n_avail_streams
+    NULL, // ci_n_pending_streams
+    NULL, // ci_cancel_pending_streams
+    NULL, // ci_going_away
+    NULL, // ci_is_push_enabled
+    NULL, // ci_get_stream_by_id
+    mini_conn_ci_get_engine, // ci_get_engine
+    NULL, // ci_make_stream
+    NULL, // ci_abort
+    NULL, // ci_retire_cid
+    NULL, // ci_close
+    NULL, // ci_stateless_reset
+    NULL, // ci_crypto_keysize
+    NULL, // ci_crypto_alg_keysize
+    NULL, // ci_crypto_ver
+    NULL, // ci_crypto_cipher
+    NULL, // ci_push_stream
+    mini_conn_ci_internal_error, // ci_internal_error
+    mini_conn_ci_abort_error, // ci_abort_error
+    mini_conn_ci_tls_alert, // ci_tls_alert
+    NULL, // ci_drain_time
+    NULL, // ci_report_live
+    mini_conn_ci_get_path, // ci_get_path
+    mini_conn_ci_record_addrs, // ci_record_addrs
+    NULL, // ci_get_log_cid
+    NULL, // ci_drop_crypto_streams
+    NULL, // ci_count_garbage
+    NULL, // ci_mtu_probe_acked
+    NULL, // ci_retx_timeout
+    NULL, // ci_ack_snapshot
+    NULL, // ci_ack_rollback
+    NULL, // ci_want_datagram_write
+    NULL, // ci_set_min_datagram_size
+    NULL, // ci_get_min_datagram_size
+    NULL, // ci_early_data_failed
+#else
     .ci_abort_error          =  mini_conn_ci_abort_error,
     .ci_client_call_on_new   =  mini_conn_ci_client_call_on_new,
     .ci_destroy              =  mini_conn_ci_destroy,
@@ -2258,6 +2410,7 @@ static const struct conn_iface mini_conn_iface_standard_Q050 = {
     .ci_record_addrs         =  mini_conn_ci_record_addrs,
     .ci_tick                 =  mini_conn_ci_tick,
     .ci_tls_alert            =  mini_conn_ci_tls_alert,
+#endif
 };
 
 
